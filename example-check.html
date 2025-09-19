@@ -1,146 +1,210 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SHA-256 Datei-Validator mit Visualisierung</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; background: #f4f4f4; }
-    #progress { width: 100%; height: 20px; background: #ddd; margin: 1em 0; }
-    #bar { height: 100%; width: 0%; background: #4caf50; }
-    #results { display: flex; gap: 2em; align-items: start; margin-top: 2em; }
-    canvas { image-rendering: pixelated; border: 1px solid #aaa; }
-    .hash-box { font-family: monospace; white-space: pre; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+    h1, h2 {
+      font-weight: normal;
+    }
+    #progress {
+      width: 100%;
+      height: 20px;
+      background: #ddd;
+      margin: 1em 0;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: #000;
+      transition: width 0.2s ease;
+    }
+    #results {
+      display: none;
+      margin-top: 2em;
+      gap: 2em;
+      align-items: start;
+      display: flex;
+    }
+    canvas {
+      image-rendering: pixelated;
+      border: 1px solid #aaa;
+      background: #000;
+      display: block;
+      margin-top: 0.5em;
+    }
+    .hash-box {
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 45%;
+    }
+    #download-link {
+      display: none;
+      margin-top: 1.5em;
+      text-decoration: none;
+      border: 1px solid #000;
+      padding: 0.5em 1em;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      color: #000;
+    }
+    #download-link:hover {
+      background: #eee;
+    }
   </style>
 </head>
 <body>
 
-<!--
-  SHA-256 Datei-Validator und Visualisierer
-  -----------------------------------------
-  Anforderungen:
-  - Liest `?url=` und `?hash=` aus der URL-Query
-  - Lädt die Datei per URL mit Fortschrittsanzeige
-  - Berechnet SHA-256 der Datei im Browser
-  - Zeigt:
-    - Vorgabe-Hash (aus ?hash=)
-    - Tatsächlich berechneten Hash
-    - Vergleich: ✅ oder ❌
-    - Beide Hashes als 16x16 Pixel-Grid (mit 8x Zoom)
-  - Bietet die Datei zum Speichern/Download an
-  - Kommentiert zur Nachvollziehbarkeit
-
-  Erstellt von ChatGPT am 2025-09-19
--->
-
 <h1>SHA-256 Datei-Validator</h1>
 
-<div id="status">⏳ Lade Datei...</div>
-<div id="progress"><div id="bar"></div></div>
+<div id="status">⏳ Bitte geben Sie eine URL und einen Hash an (?url=...&amp;hash=...)</div>
+<div id="progress" aria-label="Fortschrittsanzeige"><div id="bar"></div></div>
 
-<div id="results" style="display:none;">
+<div id="results" aria-live="polite" aria-atomic="true">
   <div class="hash-box">
     <h2>Vorgegebener Hash</h2>
-    <div id="expected-hash"></div>
-    <canvas id="expected-canvas" width="128" height="128"></canvas>
+    <div id="expected-hash" aria-label="Vorgegebener Hash"></div>
+    <canvas id="expected-canvas" width="128" height="128" aria-hidden="true"></canvas>
   </div>
   <div class="hash-box">
     <h2>Berechneter Hash</h2>
-    <div id="computed-hash"></div>
-    <canvas id="computed-canvas" width="128" height="128"></canvas>
+    <div id="computed-hash" aria-label="Berechneter Hash"></div>
+    <canvas id="computed-canvas" width="128" height="128" aria-hidden="true"></canvas>
   </div>
 </div>
 
-<a id="download-link" download style="display:none;">📥 Datei speichern</a>
+<a id="download-link" download>📥 Datei speichern</a>
 
 <script>
-async function getSHA256(buffer) {
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+  async function getSHA256(buffer) {
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
-function drawHashCanvas(hashHex, canvasId) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  const zoom = 8;
-  const size = 16;
-  const bytes = hashHex.match(/.{2}/g).map(b => parseInt(b, 16));
-  const img = ctx.createImageData(size * zoom, size * zoom);
+  /**
+   * Zeichnet die Bits des SHA-256 Hashes als 16x16 Pixel Schwarzweiß-Bitmap.
+   * 1 Bit = weiß, 0 Bit = schwarz, skaliert um Faktor 8
+   */
+  function drawHashBits(hashHex, canvasId) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const zoom = 8;
+    const size = 16;
+    const canvas = ctx.canvas;
+    canvas.width = size * zoom;
+    canvas.height = size * zoom;
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const i = y * size + x;
-      const value = bytes[i];
-      for (let dy = 0; dy < zoom; dy++) {
-        for (let dx = 0; dx < zoom; dx++) {
-          const px = ((y * zoom + dy) * size * zoom + (x * zoom + dx)) * 4;
-          img.data[px + 0] = value;     // R
-          img.data[px + 1] = 255 - value; // G
-          img.data[px + 2] = (value % 128) * 2; // B
-          img.data[px + 3] = 255;       // A
-        }
+    // Aus Hex-String jeden einzelnen Bit-Wert extrahieren
+    // Jeder Hex-Char = 4 Bits
+    const bits = [];
+    for (let i = 0; i < hashHex.length; i++) {
+      const nibble = parseInt(hashHex[i], 16);
+      for (let b = 3; b >= 0; b--) {
+        bits.push((nibble >> b) & 1);
+      }
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Zeichne Pixel: weiß für 1, schwarz für 0
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const bit = bits[y * size + x];
+        ctx.fillStyle = bit ? "#fff" : "#000";
+        ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
       }
     }
   }
-  ctx.putImageData(img, 0, 0);
-}
 
-function getQueryParam(name) {
-  const url = new URL(window.location.href);
-  return url.searchParams.get(name);
-}
-
-(async () => {
-  const url = getQueryParam("url");
-  const expectedHash = (getQueryParam("hash") || "").toLowerCase();
-
-  if (!url || !expectedHash) {
-    document.getElementById("status").textContent = "⚠️ Bitte ?url= und ?hash= angeben.";
-    return;
+  function getQueryParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
   }
 
-  const response = await fetch(url);
-  const contentLength = response.headers.get("content-length");
-  const total = contentLength ? parseInt(contentLength) : 0;
-  const reader = response.body.getReader();
+  (async () => {
+    const url = getQueryParam("url");
+    const expectedHashRaw = getQueryParam("hash") || "";
+    const expectedHash = expectedHashRaw.toLowerCase();
 
-  let chunks = [];
-  let received = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    if (total) {
-      const percent = Math.floor(received / total * 100);
-      document.getElementById("bar").style.width = percent + "%";
+    if (!url || !expectedHash || expectedHash.length !== 64 || !/^[0-9a-f]{64}$/.test(expectedHash)) {
+      document.getElementById("status").textContent = "⚠️ Bitte gültige Parameter ?url=... & ?hash=64 hex Zeichen angeben.";
+      document.getElementById("progress").style.display = "none";
+      return;
     }
-  }
 
-  const file = new Blob(chunks);
-  const arrayBuffer = await file.arrayBuffer();
-  const computedHash = await getSHA256(arrayBuffer);
+    document.getElementById("status").textContent = "⏳ Datei wird geladen...";
 
-  // Hash-Vergleich
-  const match = computedHash === expectedHash;
-  document.getElementById("status").innerHTML = match
-    ? "✅ Hash stimmt überein."
-    : "❌ Hash stimmt NICHT überein.";
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Fehler beim Laden der Datei: " + response.status + " " + response.statusText);
+      }
 
-  document.getElementById("expected-hash").textContent = expectedHash;
-  document.getElementById("computed-hash").textContent = computedHash;
+      const contentLength = response.headers.get("content-length");
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      const reader = response.body.getReader();
 
-  drawHashCanvas(expectedHash, "expected-canvas");
-  drawHashCanvas(computedHash, "computed-canvas");
+      let received = 0;
+      let chunks = [];
 
-  document.getElementById("results").style.display = "flex";
+      while(true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
 
-  // Download-Link anzeigen
-  const blobUrl = URL.createObjectURL(file);
-  const dl = document.getElementById("download-link");
-  dl.href = blobUrl;
-  dl.textContent += ` (${url.split("/").pop()})`;
-  dl.style.display = "inline-block";
-})();
+        if (total) {
+          const percent = Math.floor((received / total) * 100);
+          document.getElementById("bar").style.width = percent + "%";
+        }
+      }
+
+      const fileBlob = new Blob(chunks);
+      const arrayBuffer = await fileBlob.arrayBuffer();
+      const computedHash = await getSHA256(arrayBuffer);
+
+      const match = computedHash === expectedHash;
+      document.getElementById("status").textContent = match
+        ? "✅ Hash stimmt überein."
+        : "❌ Hash stimmt NICHT überein.";
+
+      document.getElementById("expected-hash").textContent = expectedHash;
+      document.getElementById("computed-hash").textContent = computedHash;
+
+      drawHashBits(expectedHash, "expected-canvas");
+      drawHashBits(computedHash, "computed-canvas");
+
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.style.display = "flex";
+
+      // Download-Link anzeigen
+      const dl = document.getElementById("download-link");
+      dl.href = URL.createObjectURL(fileBlob);
+      dl.download = url.split("/").pop() || "download.file";
+      dl.style.display = "inline-block";
+      dl.textContent = "📥 Datei speichern (" + dl.download + ")";
+
+      // Progress-Bar nach Ladeende auf 100%
+      document.getElementById("bar").style.width = "100%";
+
+    } catch (e) {
+      document.getElementById("status").textContent = "⚠️ Fehler: " + e.message;
+      document.getElementById("progress").style.display = "none";
+    }
+  })();
 </script>
 
 </body>
