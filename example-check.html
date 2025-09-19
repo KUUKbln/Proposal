@@ -7,22 +7,24 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
+      max-width: 700px;
+      margin: 1rem auto;
       padding: 0 1rem;
-      line-height: 1.5;
+      line-height: 1.3;
     }
     h1, h2 {
       font-weight: normal;
+      margin-bottom: 0.2em;
     }
     #progress {
       width: 100%;
       height: 20px;
       background: #ddd;
-      margin: 1em 0;
+      margin: 0.5em 0 1em 0;
       border: 1px solid #ccc;
       border-radius: 3px;
       overflow: hidden;
+      display: none;
     }
     #bar {
       height: 100%;
@@ -31,181 +33,49 @@
       transition: width 0.2s ease;
     }
     #results {
-      margin-top: 2em;
-      display: block;
+      display: flex;
+      gap: 1em;
+      margin-top: 1em;
+      flex-wrap: nowrap;
+      justify-content: space-between;
     }
     canvas {
       image-rendering: pixelated;
       border: 1px solid #aaa;
       background: #000;
       display: block;
-      margin-top: 0.5em;
+      margin-top: 0.3em;
+      width: 128px;
+      height: 128px;
     }
     .hash-box {
       font-family: monospace;
       white-space: pre-wrap;
       word-break: break-word;
-      margin-bottom: 2em;
+      flex: 1;
+    }
+    #download-container {
+      margin-top: 1em;
+      display: flex;
+      align-items: center;
+      gap: 1em;
     }
     #download-link {
-      display: none;
-      margin-top: 1.5em;
       text-decoration: none;
       border: 1px solid #000;
-      padding: 0.5em 1em;
+      padding: 0.4em 0.8em;
       border-radius: 3px;
       cursor: pointer;
       user-select: none;
       color: #000;
-      display: inline-block;
+      background-color: #f0f0f0;
+      transition: background-color 0.2s ease;
     }
     #download-link:hover {
-      background: #eee;
+      background-color: #ddd;
     }
-  </style>
-</head>
-<body>
-
-<h1>SHA-256 Datei-Validator</h1>
-
-<!-- Vorgabe Hash -->
-<div class="hash-box" id="expected-container" style="display:none;">
-  <h2>Vorgegebener Hash</h2>
-  <div id="expected-hash" aria-label="Vorgegebener Hash"></div>
-  <canvas id="expected-canvas" width="128" height="128" aria-hidden="true"></canvas>
-</div>
-
-<!-- Laufender Download -->
-<div id="status" aria-live="polite" aria-atomic="true" style="margin-top: 1em;">⏳ Bitte geben Sie eine URL und einen Hash an (?url=...&amp;hash=...)</div>
-<div id="progress" aria-label="Fortschrittsanzeige" style="display:none;">
-  <div id="bar"></div>
-</div>
-
-<!-- Berechnung Hash -->
-<div class="hash-box" id="computed-container" style="display:none;">
-  <h2>Berechneter Hash</h2>
-  <div id="computed-hash" aria-label="Berechneter Hash"></div>
-  <canvas id="computed-canvas" width="128" height="128" aria-hidden="true"></canvas>
-</div>
-
-<!-- Ergebnis + Download -->
-<div id="result-message" style="font-weight: bold; margin-top: 1em;"></div>
-<a id="download-link" download>📥 Datei speichern</a>
-
-<script>
-  async function getSHA256(buffer) {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  function drawHashBits(hashHex, canvasId) {
-    const ctx = document.getElementById(canvasId).getContext("2d");
-    const zoom = 8;
-    const size = 16;
-    const canvas = ctx.canvas;
-    canvas.width = size * zoom;
-    canvas.height = size * zoom;
-
-    const bits = [];
-    for (let i = 0; i < hashHex.length; i++) {
-      const nibble = parseInt(hashHex[i], 16);
-      for (let b = 3; b >= 0; b--) {
-        bits.push((nibble >> b) & 1);
-      }
+    #result-message {
+      font-weight: bold;
+      margin-top: 0.5em;
     }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const bit = bits[y * size + x];
-        ctx.fillStyle = bit ? "#fff" : "#000";
-        ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
-      }
-    }
-  }
-
-  function getQueryParam(name) {
-    const url = new URL(window.location.href);
-    return url.searchParams.get(name);
-  }
-
-  (async () => {
-    const url = getQueryParam("url");
-    const expectedHashRaw = getQueryParam("hash") || "";
-    const expectedHash = expectedHashRaw.toLowerCase();
-
-    if (!url || !expectedHash || expectedHash.length !== 64 || !/^[0-9a-f]{64}$/.test(expectedHash)) {
-      document.getElementById("status").textContent = "⚠️ Bitte gültige Parameter ?url=... & ?hash=64 hex Zeichen angeben.";
-      document.getElementById("progress").style.display = "none";
-      return;
-    }
-
-    // Anzeige vorbereiten
-    document.getElementById("expected-container").style.display = "block";
-    document.getElementById("expected-hash").textContent = expectedHash;
-
-    document.getElementById("status").textContent = "⏳ Datei wird geladen...";
-    document.getElementById("progress").style.display = "block";
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Fehler beim Laden der Datei: " + response.status + " " + response.statusText);
-      }
-
-      const contentLength = response.headers.get("content-length");
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-      const reader = response.body.getReader();
-
-      let received = 0;
-      let chunks = [];
-
-      while(true) {
-        const {done, value} = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-
-        if (total) {
-          const percent = Math.floor((received / total) * 100);
-          document.getElementById("bar").style.width = percent + "%";
-        }
-      }
-
-      const fileBlob = new Blob(chunks);
-      const arrayBuffer = await fileBlob.arrayBuffer();
-      const computedHash = await getSHA256(arrayBuffer);
-
-      document.getElementById("computed-container").style.display = "block";
-      document.getElementById("computed-hash").textContent = computedHash;
-
-      drawHashBits(expectedHash, "expected-canvas");
-      drawHashBits(computedHash, "computed-canvas");
-
-      const match = computedHash === expectedHash;
-      const resultMessage = document.getElementById("result-message");
-      resultMessage.textContent = match
-        ? "✅ Hash stimmt überein."
-        : "❌ Hash stimmt NICHT überein.";
-
-      // Download-Link anzeigen
-      const dl = document.getElementById("download-link");
-      dl.href = URL.createObjectURL(fileBlob);
-      dl.download = url.split("/").pop() || "download.file";
-      dl.style.display = "inline-block";
-      dl.textContent = "📥 Datei speichern (" + dl.download + ")";
-
-      // Progress-Bar auf 100%
-      document.getElementById("bar").style.width = "100%";
-
-    } catch (e) {
-      document.getElementById("status").textContent = "⚠️ Fehler: " + e.message;
-      document.getElementById("progress").style.display = "none";
-    }
-  })();
-</script>
-
-</body>
-</html>
+    #result-message.pass {
