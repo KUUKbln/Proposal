@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hash im URL-Fragment & Query-String zur Integritätsprüfung</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1em;
+      color: #000;
+      background: #fff;
+    }
+
+    h1, h2, h3 {
+      margin-top: 2em;
+      margin-bottom: 0.5em;
+    }
+
+    nav {
+      margin-bottom: 2em;
+    }
+
+    nav ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    nav ul li {
+      margin: 0.25em 0;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: black;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      background: #eee;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+
+    pre {
+      background: #f5f5f5;
+      padding: 1em;
+      overflow-x: auto;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 0.5em;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .small {
+      font-size: 0.9em;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Hash im URL-Fragment &amp; Query-String zur Dateiintegritätsprüfung</h1>
+<p class="small">Technische Erläuterung &amp; Empfehlung zur Einbettung von Prüfsummen in URLs</p>
+
+<nav>
+  <h2>Inhaltsverzeichnis</h2>
+  <ul>
+    <li><a href="#einleitung">1. Einleitung</a></li>
+    <li><a href="#grundlagen">2. Grundlagen: Fragment vs. Query</a></li>
+    <li><a href="#beispiel">3. Beispiel: Clear.gif</a></li>
+    <li><a href="#strategie">4. Komplementäre Umsetzung</a></li>
+    <li><a href="#analyse">5. Vor- und Nachteile</a></li>
+    <li><a href="#fazit">6. Fazit & Empfehlung</a></li>
+  </ul>
+</nav>
+
+<section id="einleitung">
+  <h2>1. Einleitung</h2>
+  <p>
+    Zur Prüfung der Integrität von Dateien wird oft ein Hash verwendet. 
+    Ein Vorschlag ist, diesen Hash direkt in den Link einzubetten – entweder als Fragment (nach <code>#</code>) oder als Query-Parameter (nach <code>?</code>).
+  </p>
+</section>
+
+<section id="grundlagen">
+  <h2>2. Grundlagen: Fragment vs. Query</h2>
+
+  <h3>2.1 URL-Fragment (<code>#...</code>)</h3>
+  <p>
+    Der Fragment-Teil einer URL wird nicht an den Server übertragen. Er eignet sich für clientseitige Prüfungen im Browser.
+  </p>
+
+  <h3>2.2 Query-String (<code>?key=value</code>)</h3>
+  <p>
+    Query-Parameter werden an den Server gesendet. Dadurch können Hashes dort verarbeitet, gespeichert oder überprüft werden.
+  </p>
+</section>
+
+<section id="beispiel">
+  <h2>3. Beispiel: Clear.gif</h2>
+  <p>Eine transparente 1×1-Pixel-Grafik:</p>
+  <ul>
+    <li>Datei: <code>Clear.gif</code></li>
+    <li>Dateigröße: ca. 43 Byte</li>
+    <li>SHA-256: <code>b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code></li>
+  </ul>
+
+  <h3>3.1 Fragment-Hash</h3>
+  <p>
+    Beispiel-URL:
+    <code>clear.gif#sha256=b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code>
+  </p>
+
+  <h3>3.2 Query-Parameter</h3>
+  <p>
+    Beispiel-URL:
+    <code>clear.gif?sha256=b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code>
+  </p>
+</section>
+
+<section id="strategie">
+  <h2>4. Komplementäre Umsetzung von Fragment und Query</h2>
+  <p>
+    Fragment und Query-Parameter bieten unterschiedliche Vorteile bei der Einbettung eines Hashwerts in eine URL. 
+    Ihre kombinierte Nutzung stellt keine Notlösung dar, sondern eine bewusst entworfene, komplementäre Umsetzung:
+  </p>
+  <ul>
+    <li><strong>Fragment</strong>: ermöglicht eine clientseitige Integritätsprüfung im Browser, unabhängig vom Server</li>
+    <li><strong>Query-Parameter</strong>: erlaubt serverseitige Auswertung, Logging und API-basierte Prüfungen</li>
+  </ul>
+  <p>
+    Durch diese parallele Integration kann der Hash sowohl auf Client- als auch auf Serverebene geprüft oder weiterverarbeitet werden – 
+    ohne sich gegenseitig auszuschließen.
+  </p>
+</section>
+
+<section id="analyse">
+  <h2>5. Vor- und Nachteile</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Variante</th>
+        <th>Vorteile</th>
+        <th>Nachteile</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fragment</td>
+        <td>
+          <ul>
+            <li>Keine Serverlast</li>
+            <li>Clientseitig prüfbar</li>
+            <li>Bleibt vollständig im Browser</li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>Wird nicht an den Server gesendet</li>
+            <li>Kann durch Weiterleitungen verloren gehen</li>
+            <li>Fehlt in Logs</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td>Query-String</td>
+        <td>
+          <ul>
+            <li>Serverseitig verfügbar</li>
+            <li>Für Logging &amp; APIs geeignet</li>
+            <li>Kann serverseitig validiert werden</li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>Erhöht URL-Länge</li>
+            <li>Kollidiert evtl. mit Caching-Mechanismen</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="fazit">
+  <h2>6. Fazit &amp; Empfehlung</h2>
+  <p>
+    Die Nutzung von Hashwerten im URL-Fragment ist eine einfache und effektive Lösung zur clientseitigen Validierung. 
+    Um eine vollständige Prüfbarkeit in verschiedenen Anwendungsszenarien zu ermöglichen, empfiehlt sich zusätzlich die Einbettung im Query-String.
+  </p>
+  <p>
+    Diese komplementäre Umsetzung ermöglicht eine robuste und vielseitige Integritätsprüfung von Dateien – sowohl im Frontend als auch im Backend.
+  </p>
+</section>
+
+<footer>
+  <p class="small" style="margin-top: 3em;">&copy; 2025 – Technischer Vorschlag zur Integritätsprüfung über URLs</p>
+</footer>
+
+</body>
+</html>
