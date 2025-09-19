@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vorschlag: Hash im URL-Fragment und Erweiterung des integrity-Attributs</title>
+</head>
+<body>
+  <h1>Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des <code>integrity</code>-Attributs um hexadezimale Hashwerte</h1>
+
+  <h2>Motivation</h2>
+  <p>
+    Beim Verlinken von Dateien oder Ressourcen im Web wäre es sehr nützlich, einen Hash im URL-Fragment (Teil nach dem <code>#</code> in der URL) angeben zu können, um Änderungen an der Datei leicht erkennbar zu machen. Dies ermöglicht Clients, z. B. Browsern oder Skripten, schnell zu überprüfen, ob sich eine verlinkte Datei geändert hat, ohne die Datei vollständig herunterladen oder komplexe Prüfmechanismen implementieren zu müssen.
+  </p>
+  <p>
+    Derzeit gibt es keine etablierte Konvention oder Standard, um im URL-Fragment einen Hashwert anzugeben. Eine mögliche, leicht lesbare Syntax wäre:
+  </p>
+  <pre><code>file.txt#sha256=abcdef1234567890...</code></pre>
+  <p>oder mit Komponente(n):</p>
+  <pre><code>file.txt#hash=sha256:abcdef1234567890...,datum=2025-09-19</code></pre>
+  <p>
+    Die Einführung einer solchen Konvention könnte die Zuverlässigkeit von Downloads verbessern und Entwicklern eine einfache Möglichkeit geben, Integritätsprüfungen durchzuführen oder zu erleichtern.
+  </p>
+
+  <h2>Vorschlag zur Erweiterung des <code>integrity</code>-Attributs</h2>
+  <p>
+    Parallel zur Verwendung von Hashes im URL-Fragment sollte das HTML-Attribut <code>integrity</code> um folgende Aspekte erweitert werden:
+  </p>
+  <ul>
+    <li>Unterstützung von hexadezimal kodierten Hashwerten neben der bisher definierten Base64-Kodierung.</li>
+    <li>Klare Syntax zur Angabe des Algorithmus und der Kodierung, z. B.:</li>
+  </ul>
+  <pre><code>integrity="sha256:hex:abcdef1234567890..."</code></pre>
+  <ul>
+    <li>Die Kodierung (Base64 oder hex) wird explizit angegeben, um Verwechslungen zu vermeiden.</li>
+    <li>Optional können weitere Metadaten oder Attribute ergänzt werden (z. B. Erstellungsdatum).</li>
+  </ul>
+
+  <h2>Vorteile</h2>
+  <ul>
+    <li>Verbesserte Interoperabilität und Nachvollziehbarkeit von Datei-Links.</li>
+    <li>Einfachere Implementierung von Clients und Browsern, die auf Hashes im URL-Fragment reagieren.</li>
+    <li>Einheitliche und erweiterbare Syntax sowohl im URL-Fragment als auch im <code>integrity</code>-Attribut.</li>
+    <li>Erhöhte Sicherheit durch klare Angabe von Algorithmus und Kodierung.</li>
+  </ul>
+
+  <h2>Zusammenfassung</h2>
+  <p>
+    Wir schlagen vor, eine standardisierte Syntax für Hash-Angaben im URL-Fragment (Teil nach dem <code>#</code> in der URL) einzuführen und gleichzeitig das <code>integrity</code>-Attribut zu erweitern, um hexadezimale Hashwerte mit expliziter Kodierungsangabe zu unterstützen. Dies schafft eine robuste Grundlage für Dateiintegritätsprüfungen im Web.
+  </p>
+
+  <p>Vielen Dank für die Prüfung dieses Vorschlags.</p>
+
+  <p><em>Dieser Vorschlag kann als Diskussionsgrundlage in den entsprechenden Web-Standards-Foren oder Repositorien eingereicht werden.</em></p>
+</body>
+</html>
