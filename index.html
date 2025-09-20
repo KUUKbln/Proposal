@@ -92,8 +92,9 @@
 
   <ul>
     <li>Unterstützung von hexadezimal kodierten Hashwerten neben der bisher definierten Base64-Kodierung.</li>
-    <li>Klare Syntax zur Angabe des Algorithmus und der Kodierung, z. B. <code>integrity="sha256:hex:abcdef1234567890..."</code>.</li>
-    <li>Die Kodierung (Base64 oder hex) wird explizit angegeben, um Verwechslungen zu vermeiden.</li>
+    <li>Klare Syntax zur Angabe des Algorithmus und der Kodierung, z. B. <code>integrity="sha256:abcdef1234567890..."</code>.</li>
+    <li>Der Algorithmus (sha256) wird explizit angegeben, um Verwechslungen zu vermeiden.</li>
+    <li>Die Kodierung in hexadezimal erschliesst sich eindeutig aus der Syntax und das verwendete Trennzeichen ":"</li>
     <li>Optional können weitere Metadaten oder Attribute ergänzt werden (z. B. Erstellungsdatum).</li>
   </ul>
 
