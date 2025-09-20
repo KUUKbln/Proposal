@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hash im URL-Fragment & Query-String zur Integritätsprüfung</title>
+  <title>Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des integrity-Attributs um hexadezimale Hashwerte</title>
   <style>
     body {
       font-family: sans-serif;
@@ -77,8 +77,50 @@
 </head>
 <body>
 
-<h1>Hash im URL-Fragment &amp; Query-String zur Dateiintegritätsprüfung</h1>
-<p class="small">Technische Erläuterung &amp; Empfehlung zur Einbettung von Prüfsummen in URLs</p>
+<h1>Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des integrity-Attributs um hexadezimale Hashwerte</h1>
+
+<section id="einleitung">
+  <h2>1. Einleitung</h2>
+
+  <p>
+    Dieser Vorschlag beschreibt eine standardisierte Syntax zur Angabe von Hashes in URLs, sowohl im URL-Fragment (<code>#</code>) als auch im Query-String (<code>?</code>), um eine einfache und flexible Dateiintegritätsprüfung zu ermöglichen.
+  </p>
+
+  <p>
+    Die Syntax orientiert sich am bestehenden <code>integrity</code>-Attribut (Subresource Integrity, SRI) und erweitert dieses um:
+  </p>
+
+  <ul>
+    <li>Unterstützung von hexadezimal kodierten Hashwerten neben der bisher definierten Base64-Kodierung.</li>
+    <li>Klare Syntax zur Angabe des Algorithmus und der Kodierung, z. B. <code>integrity="sha256:hex:abcdef1234567890..."</code>.</li>
+    <li>Die Kodierung (Base64 oder hex) wird explizit angegeben, um Verwechslungen zu vermeiden.</li>
+    <li>Optional können weitere Metadaten oder Attribute ergänzt werden (z. B. Erstellungsdatum).</li>
+  </ul>
+
+  <p>
+    Diese Struktur ermöglicht eine dynamische Auswertung des Algorithmus und der Kodierung, schafft Kompatibilität zu bestehenden Webstandards und erleichtert die Integration in verschiedene Umgebungen.
+  </p>
+
+  <p>
+    Ziel ist es, eine robuste, nachvollziehbare und standardisierte Lösung zur Dateiintegritätsprüfung auf Client- und Serverseite zu schaffen.
+  </p>
+
+  <h3>Motivation</h3>
+  <p>
+    Dateiintegrität ist im Web eine essenzielle Voraussetzung für Sicherheit, Nachvollziehbarkeit und Datenqualität. Das bestehende <code>integrity</code>-Attribut definiert zwar eine Basis, unterstützt aber nur Base64-kodierte Hashes und ist auf bestimmte Algorithmen beschränkt.
+  </p>
+  <p>
+    Die Erweiterung um hexadezimale Hashwerte, flexible Algorithmen und die Einbettung in URL-Fragmente oder Query-Parameter bietet mehr Transparenz und Anpassungsfähigkeit. Außerdem können so Integritätsprüfungen auch ohne Serverbeteiligung clientseitig einfach realisiert werden.
+  </p>
+
+  <p>
+    Dieses Proposal schlägt daher eine leichtgewichtige, aber leistungsfähige Syntax vor, die die Vorteile bestehender Konzepte verbindet und gleichzeitig neue Anwendungsszenarien ermöglicht.
+  </p>
+
+  <p>
+    Im Folgenden werden Grundlagen, Beispiele und die komplementäre Nutzung von Fragment und Query-Parametern erläutert.
+  </p>
+</section>
 
 <nav>
   <h2>Inhaltsverzeichnis</h2>
@@ -91,14 +133,6 @@
     <li><a href="#fazit">6. Fazit & Empfehlung</a></li>
   </ul>
 </nav>
-
-<section id="einleitung">
-  <h2>1. Einleitung</h2>
-  <p>
-    Zur Prüfung der Integrität von Dateien wird oft ein Hash verwendet. 
-    Ein Vorschlag ist, diesen Hash direkt in den Link einzubetten – entweder als Fragment (nach <code>#</code>) oder als Query-Parameter (nach <code>?</code>).
-  </p>
-</section>
 
 <section id="grundlagen">
   <h2>2. Grundlagen: Fragment vs. Query</h2>
@@ -113,6 +147,7 @@
     Query-Parameter werden an den Server gesendet. Dadurch können Hashes dort verarbeitet, gespeichert oder überprüft werden.
   </p>
 </section>
+
 
 <section id="beispiel">
   <h2>3. Beispiel: Clear.gif</h2>
@@ -146,7 +181,7 @@
   </p>
   <p>
     <a href="example-validator.html?url=https://kuukbln.github.io/Proposal/Clear.gif#sha256:cf4724b2f736ed1a0ae6bc28f1ead963d9cd2c1fd87b6ef32e7799fc1c5c8bda" target="_blank" rel="noopener noreferrer">
-      🔗 Clear.gif mit SHA-256 Hash prüfen (Online Validator: valider Hash)
+      🔗 Clear.gif mit SHA-256 Hash prüfen (Online Validator)
     </a>
   </p>
   
@@ -155,7 +190,6 @@
     Diese Methode eignet sich gut für Integritätsprüfungen in unabhängigen Clients oder statischen Webanwendungen.
   </small>
 </section>
-
 
 <section id="strategie">
   <h2>4. Komplementäre Umsetzung von Fragment und Query</h2>
@@ -229,6 +263,9 @@
   </p>
   <p>
     Diese komplementäre Umsetzung ermöglicht eine robuste und vielseitige Integritätsprüfung von Dateien – sowohl im Frontend als auch im Backend.
+  </p>
+  <p>
+    Die Validierung sollte idealerweise clientseitig erfolgen, z. B. durch JavaScript im Browser, kann aber auch serverseitig umgesetzt werden.
   </p>
 </section>
 
