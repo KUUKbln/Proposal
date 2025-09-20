@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des integrity-Attributs um hexadezimale Hashwerte</title>
+  <title>[DEMO] Vorschlag: Hash im URL-Fragment + Integrity-Erweiterung (ChatGPT-Experiment)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -73,53 +74,39 @@
       font-size: 0.9em;
       color: #333;
     }
+
+    .notice {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1em;
+      margin: 1em 0;
+    }
   </style>
 </head>
 <body>
 
-<h1>Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des integrity-Attributs um hexadezimale Hashwerte</h1>
+<div class="notice">
+  <strong>Hinweis:</strong> Dieses Dokument ist Teil eines offenen Experiments, das gestern Abend in Zusammenarbeit mit <strong>ChatGPT</strong> entstanden ist. Idee, Konzept und Text wurden gemeinsam mit der KI entwickelt. Die Inhalte sind unvollständig, nicht final und technisch nicht garantiert funktionsfähig. Es handelt sich um eine Diskussions- und Testversion.
+</div>
+
+<h1>[DEMO] Vorschlag: Unterstützung von Hash-Angaben im URL-Fragment und Erweiterung des integrity-Attributs</h1>
 
 <section id="einleitung">
   <h2>1. Einleitung</h2>
 
   <p>
-    Dieser Vorschlag beschreibt eine standardisierte Syntax zur Angabe von Hashes in URLs, sowohl im URL-Fragment (<code>#</code>) als auch im Query-String (<code>?</code>), um eine einfache und flexible Dateiintegritätsprüfung zu ermöglichen.
-  </p>
-
-  <p>
-    Die Syntax orientiert sich am bestehenden <code>integrity</code>-Attribut (Subresource Integrity, SRI) und erweitert dieses um:
+    Dieser Vorschlag beschreibt eine experimentelle Syntax zur Angabe von Hashes in URLs, sowohl im URL-Fragment (<code>#</code>) als auch im Query-String (<code>?</code>), um eine einfache und flexible Dateiintegritätsprüfung zu ermöglichen.
   </p>
 
   <ul>
-    <li>Unterstützung von hexadezimal kodierten Hashwerten neben der bisher definierten Base64-Kodierung.</li>
-    <li>Klare Syntax zur Angabe des Algorithmus und der Kodierung, z. B. <code>integrity="sha256:abcdef1234567890..."</code>.</li>
-    <li>Der Algorithmus (sha256) wird explizit angegeben, um Verwechslungen zu vermeiden.</li>
-    <li>Die Kodierung in hexadezimal erschliesst sich eindeutig aus der Syntax und das verwendete Trennzeichen ":"</li>
-    <li>Optional können weitere Metadaten oder Attribute ergänzt werden (z. B. Erstellungsdatum).</li>
+    <li>Unterstützung von hexadezimal kodierten Hashwerten neben Base64.</li>
+    <li>Klare Syntax wie <code>sha256:abcdef...</code> mit Algorithmus und Kodierung.</li>
+    <li>Client- und serverseitige Validierung denkbar.</li>
+    <li>Optional: Metadaten wie Erstellungsdatum.</li>
   </ul>
 
   <p>
-    Diese Struktur ermöglicht eine dynamische Auswertung des Algorithmus und der Kodierung, schafft Kompatibilität zu bestehenden Webstandards und erleichtert die Integration in verschiedene Umgebungen.
-  </p>
-
-  <p>
-    Ziel ist es, eine robuste, nachvollziehbare und standardisierte Lösung zur Dateiintegritätsprüfung auf Client- und Serverseite zu schaffen.
-  </p>
-
-  <h3>Motivation</h3>
-  <p>
-    Dateiintegrität ist im Web eine essenzielle Voraussetzung für Sicherheit, Nachvollziehbarkeit und Datenqualität. Das bestehende <code>integrity</code>-Attribut definiert zwar eine Basis, unterstützt aber nur Base64-kodierte Hashes und ist auf bestimmte Algorithmen beschränkt.
-  </p>
-  <p>
-    Die Erweiterung um hexadezimale Hashwerte, flexible Algorithmen und die Einbettung in URL-Fragmente oder Query-Parameter bietet mehr Transparenz und Anpassungsfähigkeit. Außerdem können so Integritätsprüfungen auch ohne Serverbeteiligung clientseitig einfach realisiert werden.
-  </p>
-
-  <p>
-    Dieses Proposal schlägt daher eine leichtgewichtige, aber leistungsfähige Syntax vor, die die Vorteile bestehender Konzepte verbindet und gleichzeitig neue Anwendungsszenarien ermöglicht.
-  </p>
-
-  <p>
-    Im Folgenden werden Grundlagen, Beispiele und die komplementäre Nutzung von Fragment und Query-Parametern erläutert.
+    Diese Struktur soll neue Anwendungsfälle ermöglichen – z. B. Hash-Prüfung in statischen Seiten oder APIs.
   </p>
 </section>
 
@@ -140,71 +127,64 @@
 
   <h3>2.1 URL-Fragment (<code>#...</code>)</h3>
   <p>
-    Der Fragment-Teil einer URL wird nicht an den Server übertragen. Er eignet sich für clientseitige Prüfungen im Browser.
+    Der Fragmentteil wird nicht an den Server gesendet und eignet sich für clientseitige Validierung im Browser.
   </p>
 
   <h3>2.2 Query-String (<code>?key=value</code>)</h3>
   <p>
-    Query-Parameter werden an den Server gesendet. Dadurch können Hashes dort verarbeitet, gespeichert oder überprüft werden.
+    Query-Parameter werden an den Server gesendet und können dort verarbeitet, geloggt oder geprüft werden.
   </p>
 </section>
 
-
 <section id="beispiel">
   <h2>3. Beispiel: Clear.gif</h2>
-  <p>Eine transparente 1×1-Pixel-Grafik:</p>
+  <p>Beispielhafte transparente 1×1-Pixel-Grafik:</p>
   <ul>
     <li>Datei: <code>Clear.gif</code></li>
-    <li>Dateigröße: ca. 43 Byte</li>
+    <li>Größe: ca. 43 Byte</li>
     <li>SHA-256: <code>b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code></li>
   </ul>
 
   <h3>3.1 Fragment-Hash</h3>
   <p>
-    Beispiel-URL:
+    Beispiel-URL:  
     <code>clear.gif#sha256=b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code>
   </p>
 
   <h3>3.2 Query-Parameter</h3>
   <p>
-    Beispiel-URL:
+    Beispiel-URL:  
     <code>clear.gif?sha256=b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4</code>
   </p>
 
-  <h3>3.3 Validierungs-Beispiel mit unserem Validator</h3>
+  <h3>3.3 Hinweis zur Funktionalität</h3>
   <p>
-    Hier ein funktionierender Link zum Online-Validator, der die Datei lädt und clientseitig validiert:
+    Die folgenden Beispiel-Links <strong>können fehlerhaft sein</strong> oder nicht wie erwartet funktionieren. Es handelt sich um eine frühe Testphase.
   </p>
   <p>
     <a href="example-validator.html?url=https://kuukbln.github.io/Proposal/Clear.gif#sha256:b4c52d276e8e2f0c7a97e3fbd70b18d30b11aa5ac26a795e4c225b2cf1e8c7bc4" target="_blank" rel="noopener noreferrer">
-      🔗 Clear.gif mit SHA-256 Hash prüfen (Online Validator: falscher Hash)
+      🔗 Beispiel-Link mit SHA-256 Hash (falscher Hash)
     </a>
   </p>
   <p>
     <a href="example-validator.html?url=https://kuukbln.github.io/Proposal/Clear.gif#sha256:cf4724b2f736ed1a0ae6bc28f1ead963d9cd2c1fd87b6ef32e7799fc1c5c8bda" target="_blank" rel="noopener noreferrer">
-      🔗 Clear.gif mit SHA-256 Hash prüfen (Online Validator)
+      🔗 Beispiel-Link mit SHA-256 Hash (richtiger Hash – Demo, nicht garantiert)
     </a>
   </p>
-  
-  <small>
-    ⚠️ Hinweis: Die Validierung erfolgt vollständig im Browser (clientseitig) – somit ist keine Serververarbeitung nötig. 
-    Diese Methode eignet sich gut für Integritätsprüfungen in unabhängigen Clients oder statischen Webanwendungen.
-  </small>
+  <small>⚠️ Diese Validierung erfolgt clientseitig und ist in dieser Version möglicherweise unvollständig.</small>
 </section>
-
 <section id="strategie">
   <h2>4. Komplementäre Umsetzung von Fragment und Query</h2>
   <p>
-    Fragment und Query-Parameter bieten unterschiedliche Vorteile bei der Einbettung eines Hashwerts in eine URL. 
-    Ihre kombinierte Nutzung stellt keine Notlösung dar, sondern eine bewusst entworfene, komplementäre Umsetzung:
+    Fragment und Query-Parameter bieten unterschiedliche Vorteile. Ihre kombinierte Nutzung stellt keine Notlösung dar, 
+    sondern eine bewusste Strategie:
   </p>
   <ul>
-    <li><strong>Fragment</strong>: ermöglicht eine clientseitige Integritätsprüfung im Browser, unabhängig vom Server</li>
-    <li><strong>Query-Parameter</strong>: erlaubt serverseitige Auswertung, Logging und API-basierte Prüfungen</li>
+    <li><strong>Fragment</strong>: ermöglicht eine clientseitige Integritätsprüfung im Browser – unabhängig vom Server</li>
+    <li><strong>Query-Parameter</strong>: erlaubt serverseitige Prüfung, Logging und Weiterverarbeitung (z. B. durch APIs)</li>
   </ul>
   <p>
-    Durch diese parallele Integration kann der Hash sowohl auf Client- als auch auf Serverebene geprüft oder weiterverarbeitet werden – 
-    ohne sich gegenseitig auszuschließen.
+    Durch diese parallele Integration kann der Hash auf mehreren Ebenen geprüft werden – ohne dass sich die Methoden ausschließen.
   </p>
 </section>
 
@@ -259,19 +239,23 @@
 <section id="fazit">
   <h2>6. Fazit &amp; Empfehlung</h2>
   <p>
-    Die Nutzung von Hashwerten im URL-Fragment ist eine einfache und effektive Lösung zur clientseitigen Validierung. 
-    Um eine vollständige Prüfbarkeit in verschiedenen Anwendungsszenarien zu ermöglichen, empfiehlt sich zusätzlich die Einbettung im Query-String.
+    Die Nutzung von Hashwerten im URL-Fragment ist eine einfache und effektive Lösung zur clientseitigen Validierung – 
+    besonders für statische Seiten oder portable Anwendungen.
   </p>
   <p>
-    Diese komplementäre Umsetzung ermöglicht eine robuste und vielseitige Integritätsprüfung von Dateien – sowohl im Frontend als auch im Backend.
+    In Kombination mit dem Query-String wird zudem eine serverseitige Verarbeitbarkeit ermöglicht. 
+    Beide Konzepte ergänzen sich sinnvoll.
   </p>
   <p>
-    Die Validierung sollte idealerweise clientseitig erfolgen, z. B. durch JavaScript im Browser, kann aber auch serverseitig umgesetzt werden.
+    Wir empfehlen, diese Struktur zunächst testweise in experimentellen Umgebungen zu erproben und Feedback zu sammeln. 
+    Die vorgestellte Syntax ist bewusst minimalistisch gehalten, kann aber erweitert werden.
   </p>
 </section>
-
 <footer>
-  <p class="small" style="margin-top: 3em;">&copy; 2025 – Technischer Vorschlag zur Integritätsprüfung über URLs</p>
+  <p class="small" style="margin-top: 3em;">
+    &copy; 2025 – Gemeinsames Konzept- und Text-Experiment zur Integritätsprüfung mit URL-Hashes<br>
+    Erstellt in Zusammenarbeit mit ChatGPT – Idee und Ausarbeitung gemeinsam entwickelt am Vorabend.
+  </p>
 </footer>
 
 </body>
