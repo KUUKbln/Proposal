@@ -2,20 +2,18 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SHA-Validator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datei-Validator (Experiment)</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       max-width: 900px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    h1, h2 {
-      font-weight: normal;
+      margin: 2em auto;
+      padding: 1em;
+      background: #fff;
+      color: #000;
     }
     #progress {
-      width: 100%;
       height: 20px;
       background: #ddd;
       margin: 1em 0;
@@ -79,6 +77,13 @@
 </head>
 <body>
 
+<!-- 💬 Hinweisblock oben auf der Seite -->
+<div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 1em; margin-bottom: 2em; color: #856404; border-radius: 5px;">
+  <strong>⚠️ Hinweis:</strong> Diese Seite ist ein technisches Experiment, gemeinsam erstellt mit <strong>ChatGPT</strong> am <em>19.09.2025</em>.<br>
+  Sie dient Demonstrations- und Testzwecken – Funktion und Sicherheit sind nicht garantiert.<br>
+  Beispiel-Hashes und Dateiüberprüfungen können fehlschlagen oder unvollständig sein.
+</div>
+
 <h1>Datei-Validator</h1>
 <div id="status">⏳ Warte auf Eingabe...</div>
 <div id="progress"><div id="bar"></div></div>
@@ -98,7 +103,6 @@
 
 <a id="download-link" download>📥 Datei speichern</a>
 <img id="image-preview" alt="Bildvorschau" />
-
 <script>
   const allowedAlgorithms = ["sha256"]; // nur sha256 zulassen (erweiterbar)
 
