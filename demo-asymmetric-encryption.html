@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Demo: Asymmetrische Verschlüsselung & Signierung</title>
+<style>
+  body {
+    margin: 1.5rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #222;
+    background: #fafafa;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h1 {
+    color: #004080;
+    text-align: center;
+  }
+  section {
+    background: white;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+  }
+  label {
+    display: block;
+    margin: 0.6em 0 0.2em;
+    font-weight: 600;
+  }
+  textarea, input[type="text"] {
+    width: 100%;
+    font-family: monospace;
+    font-size: 1rem;
+    padding: 0.5em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  select {
+    font-size: 1rem;
+    padding: 0.3em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 1em;
+  }
+  button.copy-btn {
+    margin-top: 0.3em;
+    margin-bottom: 1em;
+    padding: 0.3em 0.7em;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    background-color: #004080;
+    color: white;
+    border-radius: 3px;
+    user-select: none;
+  }
+  button.copy-btn:active {
+    background-color: #002850;
+  }
+  .output-field {
+    position: relative;
+    margin-bottom: 1.2em;
+  }
+  .output-field textarea, .output-field input[type="text"] {
+    padding-right: 3.5em;
+  }
+  .output-field button.copy-btn {
+    position: absolute;
+    top: 0.4em;
+    right: 0.4em;
+  }
+  .warning {
+    background-color: #fff0f0;
+    border: 1px solid #cc0000;
+    color: #990000;
+    padding: 1em 1.2em;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+  }
+  .explanation {
+    font-size: 0.9rem;
+    color: #555;
+    background: #eef4fb;
+    border-left: 4px solid #004080;
+    padding: 1em 1.2em;
+    border-radius: 4px;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>Demo: Asymmetrische Verschlüsselung & Signierung (WebCrypto API)</h1>
+
+<section id="keygen-section">
+  <h2>1. Schlüsselpaare generieren</h2>
+
+  <button id="gen-enc-keys">Verschlüsselungs-Schlüsselpaar (RSA-OAEP) erzeugen</button>
+  <div class="output-field">
+    <label for="publicKeyEnc">Öffentlicher Schlüssel (Base64, RSA-OAEP):</label>
+    <textarea id="publicKeyEnc" rows="4" readonly></textarea>
+    <button class="copy-btn" data-target="publicKeyEnc">Kopieren</button>
+  </div>
+  <div class="output-field">
+    <label for="privateKeyEnc">Privater Schlüssel (Base64, RSA-OAEP):</label>
+    <textarea id="privateKeyEnc" rows="4" readonly></textarea>
+    <button class="copy-btn" data-target="privateKeyEnc">Kopieren</button>
+  </div>
+
+  <hr />
+
+  <button id="gen-sign-keys">Signatur-Schlüsselpaar (RSA-PSS) erzeugen</button>
+  <div class="output-field">
+    <label for="publicKeySign">Öffentlicher Schlüssel (Base64, RSA-PSS):</label>
+    <textarea id="publicKeySign" rows="4" readonly></textarea>
+    <button class="copy-btn" data-target="publicKeySign">Kopieren</button>
+  </div>
+  <div class="output-field">
+    <label for="privateKeySign">Privater Schlüssel (Base64, RSA-PSS):</label>
+    <textarea id="privateKeySign" rows="4" readonly></textarea>
+    <button class="copy-btn" data-target="privateKeySign">Kopieren</button>
+  </div>
+</section>
+
+<section id="crypto-section">
+  <h2>2. Nachricht verschlüsseln / entschlüsseln</h2>
+  <label for="plaintext">Klartext Nachricht:</label>
+  <textarea id="plaintext" rows="3" placeholder="Nachricht hier eingeben"></textarea>
+
+  <label for="enc-public-key-input">Öffentlicher Schlüssel (Base64, RSA-OAEP) für Verschlüsselung:</label>
+  <textarea id="enc-public-key-input" rows="4" placeholder="Public Key hier einfügen"></textarea>
+
+  <label for="enc-private-key-input">Privater Schlüssel (Base64, RSA-OAEP) für Entschlüsselung:</label>
+  <textarea id="enc-private-key-input" rows="4" placeholder="Private Key hier einfügen"></textarea>
+
+  <button id="encrypt-btn">Nachricht verschlüsseln</button>
+  <button id="decrypt-btn">Nachricht entschlüsseln</button>
+
+  <div class="output-field">
+    <label for="ciphertext">Verschlüsselte Nachricht (Base64):</label>
+    <textarea id="ciphertext" rows="4" readonly></textarea>
+    <button class="copy-btn" data-target="ciphertext">Kopieren</button>
+  </div>
+
+  <div class="output-field">
+    <label for="decryptedtext">Entschlüsselte Nachricht:</label>
+    <textarea id="decryptedtext" rows="3" readonly></textarea>
+    <button class="copy-btn" data-target="decryptedtext">Kopieren</button>
+  </div>
+</section>
+
+<section id="sign-section">
+  <h2>3. Nachricht signieren / Signatur prüfen</h2>
+
+  <label for="sign-private-key-input">Privater Schlüssel (Base64, RSA-PSS) für Signatur:</label>
+  <textarea id="sign-private-key-input" rows="4" placeholder="Private Key hier einfügen"></textarea>
+
+  <label for="sign-public-key-input">Öffentlicher Schlüssel (Base64, RSA-PSS) für Verifikation:</label>
+  <textarea id="sign-public-key-input" rows="4" placeholder="Public Key hier einfügen"></textarea>
+
+  <button id="sign-btn">Nachricht signieren</button>
+  <button id="verify-btn">Signatur prüfen</button>
+
+  <label for="signature">Signatur (Base64):</label>
+  <textarea id="signature" rows="4" readonly></textarea>
+  <button class="copy-btn" data-target="signature">Kopieren</button>
+
+  <div id="verify-result" style="margin-top:0.5em; font-weight: 700;"></div>
+</section>
+
+<section class="warning">
+  ⚠️ <strong>Warnung:</strong> Dieses Demo-Tool verwendet die WebCrypto API zur Veranschaulichung asymmetrischer Kryptografie.
+  Die Schlüssel und Operationen sind nicht für Produktionsumgebungen geeignet. Keine sichere Speicherung der Schlüssel!
+</section>
+
+<section class="explanation">
+  <h3>Kurze Erläuterung der WebCrypto-Operationen</h3>
+  <ul>
+    <li><strong>RSA-OAEP</strong>: Asymmetrisches Verschlüsselungsverfahren, verwendet hier mit SHA-256. Öffentlicher Schlüssel verschlüsselt, privater entschlüsselt.</li>
+    <li><strong>RSA-PSS</strong>: Algorithmus für digitale Signaturen, verwendet mit SHA-256. Privater Schlüssel signiert, öffentlicher Schlüssel verifiziert.</li>
+    <li><strong>Base64</strong>: Kodierung für binäre Daten, damit Schlüssel, Ciphertext und Signaturen als Text dargestellt werden können.</li>
+  </ul>
+</section>
+
+<script>
+(async () => {
+  // Helfer: ArrayBuffer <-> Base64
+  function ab2b64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let b of bytes) binary += String.fromCharCode(b);
+    return btoa(binary);
+  }
+  function b642ab(base64) {
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i=0; i<len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  // Schlüssel-Export als Base64 PEM-ähnlich
+  async function exportKey(key) {
+    const exported = await crypto.subtle.exportKey("spki", key).catch(async () => {
+      // Versuche pkcs8 (privat)
+      return crypto.subtle.exportKey("pkcs8", key);
+    });
+    return ab2b64(exported);
+  }
+  // Schlüssel-Import (public) RSA-OAEP
+  async function importPublicKeyOAEP(b64key) {
+    try {
+      return await crypto.subtle.importKey(
+        "spki",
+        b642ab(b64key),
+        { name: "RSA-OAEP", hash: "SHA-256" },
+        true,
+        ["encrypt"]
+      );
+    } catch(e) {
+      throw new Error("Ungültiger öffentlicher Schlüssel für RSA-OAEP");
+    }
+  }
+  // Schlüssel-Import (private) RSA-OAEP
+  async function importPrivateKeyOAEP(b64key) {
+    try {
+      return await crypto.subtle.importKey(
+        "pkcs8",
+        b642ab(b64key),
+        { name: "RSA-OAEP", hash: "SHA-256" },
+        true,
+        ["decrypt"]
+      );
+    } catch(e) {
+      throw new Error("Ungültiger privater Schlüssel für RSA-OAEP");
+    }
+  }
+  // Schlüssel-Import (public) RSA-PSS
+  async function importPublicKeyPSS(b64key) {
+    try {
+      return await crypto.subtle.importKey(
+        "spki",
+        b642ab(b64key),
+        { name: "RSA-PSS", hash: "SHA-256" },
+        true,
+        ["verify"]
+      );
+    } catch(e) {
+      throw new Error("Ungültiger öffentlicher Schlüssel für RSA-PSS");
+    }
+  }
+  // Schlüssel-Import (private) RSA-PSS
+  async function importPrivateKeyPSS(b64key) {
+    try {
+      return await crypto.subtle.importKey(
+        "pkcs8",
+        b642ab(b64key),
+        { name: "RSA-PSS", hash: "SHA-256" },
+        true,
+        ["sign"]
+      );
+    } catch(e) {
+      throw new Error("Ungültiger privater Schlüssel für RSA-PSS");
+    }
+  }
+
+  // Schlüsselgenerierung RSA-OAEP (Verschlüsselung)
+  async function generateEncKeys() {
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: "RSA-OAEP",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1,0,1]),
+        hash: "SHA-256"
+      },
+      true,
+      ["encrypt", "decrypt"]
+    );
+    return keyPair;
+  }
+  // Schlüsselgenerierung RSA-PSS (Signatur)
+  async function generateSignKeys() {
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: "RSA-PSS",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1,0,1]),
+        hash: "SHA-256"
+      },
+      true,
+      ["sign", "verify"]
+    );
+    return keyPair;
+  }
+
+  // Elemente
+  const btnGenEnc = document.getElementById("gen-enc-keys");
+  const btnGenSign = document.getElementById("gen-sign-keys");
+
+  const publicKeyEncArea = document.getElementById("publicKeyEnc");
+  const privateKeyEncArea = document.getElementById("privateKeyEnc");
+  const publicKeySignArea = document.getElementById("publicKeySign");
+  const privateKeySignArea = document.getElementById("privateKeySign");
+
+  const plaintextArea = document.getElementById("plaintext");
+  const encPublicKeyInput = document.getElementById("enc-public-key-input");
+  const encPrivateKeyInput = document.getElementById("enc-private-key-input");
+  const ciphertextArea = document.getElementById("ciphertext");
+  const decryptedtextArea = document.getElementById("decryptedtext");
+
+  const signPrivateKeyInput = document.getElementById("sign-private-key-input");
+  const signPublicKeyInput = document.getElementById("sign-public-key-input");
+  const signatureArea = document.getElementById("signature");
+  const verifyResult = document.getElementById("verify-result");
+
+  const btnEncrypt = document.getElementById("encrypt-btn");
+  const btnDecrypt = document.getElementById("decrypt-btn");
+  const btnSign = document.getElementById("sign-btn");
+  const btnVerify = document.getElementById("verify-btn");
+
+  // Kopier-Buttons
+  document.querySelectorAll("button.copy-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-target");
+      const el = document.getElementById(targetId);
+      if(el) {
+        el.select();
+        document.execCommand("copy");
+        btn.textContent = "Kopiert!";
+        setTimeout(() => btn.textContent = "Kopieren", 1500);
+      }
+    });
+  });
+
+  // Generiere Verschlüsselungs-Keypair
+  btnGenEnc.addEventListener("click", async () => {
+    btnGenEnc.disabled = true;
+    btnGenEnc.textContent = "Generiere...";
+    try {
+      const keys = await generateEncKeys();
+      const pub = await exportKey(keys.publicKey);
+      const priv = await exportKey(keys.privateKey);
+      publicKeyEncArea.value = pub;
+      privateKeyEncArea.value = priv;
+    } catch(e) {
+      alert("Fehler bei der Schlüsselerzeugung: " + e.message);
+    } finally {
+      btnGenEnc.disabled = false;
+      btnGenEnc.textContent = "Verschlüsselungs-Schlüsselpaar (RSA-OAEP) erzeugen";
+    }
+  });
+
+  // Generiere Signatur-Keypair
+  btnGenSign.addEventListener("click", async () => {
+    btnGenSign.disabled = true;
+    btnGenSign.textContent = "Generiere...";
+    try {
+      const keys = await generateSignKeys();
+      const pub = await exportKey(keys.publicKey);
+      const priv = await exportKey(keys.privateKey);
+      publicKeySignArea.value = pub;
+      privateKeySignArea.value = priv;
+    } catch(e) {
+      alert("Fehler bei der Schlüsselerzeugung: " + e.message);
+    } finally {
+      btnGenSign.disabled = false;
+      btnGenSign.textContent = "Signatur-Schlüsselpaar (RSA-PSS) erzeugen";
+    }
+  });
+
+  // Nachricht verschlüsseln (RSA-OAEP)
+  btnEncrypt.addEventListener("click", async () => {
+    const text = plaintextArea.value;
+    const pubKeyB64 = encPublicKeyInput.value.trim();
+    if (!text) {
+      alert("Bitte eine Nachricht zum Verschlüsseln eingeben.");
+      return;
+    }
+    if (!pubKeyB64) {
+      alert("Bitte den öffentlichen Schlüssel für Verschlüsselung eingeben.");
+      return;
+    }
+    try {
+      const pubKey = await importPublicKeyOAEP(pubKeyB64);
+      const encoded = new TextEncoder().encode(text);
+      const cipherBuffer = await crypto.subtle.encrypt(
+        {name: "RSA-OAEP"},
+        pubKey,
+        encoded
+      );
+      ciphertextArea.value = ab2b64(cipherBuffer);
+      decryptedtextArea.value = "";
+    } catch(e) {
+      alert("Fehler beim Verschlüsseln: " + e.message);
+    }
+  });
+
+  // Nachricht entschlüsseln (RSA-OAEP)
+  btnDecrypt.addEventListener("click", async () => {
+    const cipherB64 = ciphertextArea.value.trim();
+    const privKeyB64 = encPrivateKeyInput.value.trim();
+    if (!cipherB64) {
+      alert("Bitte eine verschlüsselte Nachricht eingeben.");
+      return;
+    }
+    if (!privKeyB64) {
+      alert("Bitte den privaten Schlüssel für Entschlüsselung eingeben.");
+      return;
+    }
+    try {
+      const privKey = await importPrivateKeyOAEP(privKeyB64);
+      const cipherBuffer = b642ab(cipherB64);
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        {name: "RSA-OAEP"},
+        privKey,
+        cipherBuffer
+      );
+      const decoded = new TextDecoder().decode(decryptedBuffer);
+      decryptedtextArea.value = decoded;
+    } catch(e) {
+      alert("Fehler beim Entschlüsseln: " + e.message);
+    }
+  });
+
+  // Nachricht signieren (RSA-PSS)
+  btnSign.addEventListener("click", async () => {
+    const text = plaintextArea.value;
+    const privKeyB64 = signPrivateKeyInput.value.trim();
+    if (!text) {
+      alert("Bitte eine Nachricht zum Signieren eingeben.");
+      return;
+    }
+    if (!privKeyB64) {
+      alert("Bitte den privaten Schlüssel für Signatur eingeben.");
+      return;
+    }
+    try {
+      const privKey = await importPrivateKeyPSS(privKeyB64);
+      const data = new TextEncoder().encode(text);
+      const signatureBuffer = await crypto.subtle.sign(
+        {
+          name: "RSA-PSS",
+          saltLength: 32
+        },
+        privKey,
+        data
+      );
+      signatureArea.value = ab2b64(signatureBuffer);
+      verifyResult.textContent = "";
+    } catch(e) {
+      alert("Fehler beim Signieren: " + e.message);
+    }
+  });
+
+  // Signatur prüfen (RSA-PSS)
+  btnVerify.addEventListener("click", async () => {
+    const text = plaintextArea.value;
+    const pubKeyB64 = signPublicKeyInput.value.trim();
+    const signatureB64 = signatureArea.value.trim();
+    if (!text) {
+      alert("Bitte eine Nachricht zum Prüfen eingeben.");
+      return;
+    }
+    if (!pubKeyB64) {
+      alert("Bitte den öffentlichen Schlüssel für Verifikation eingeben.");
+      return;
+    }
+    if (!signatureB64) {
+      alert("Bitte eine Signatur eingeben.");
+      return;
+    }
+    try {
+      const pubKey = await importPublicKeyPSS(pubKeyB64);
+      const data = new TextEncoder().encode(text);
+      const signatureBuffer = b642ab(signatureB64);
+      const valid = await crypto.subtle.verify(
+        {
+          name: "RSA-PSS",
+          saltLength: 32
+        },
+        pubKey,
+        signatureBuffer,
+        data
+      );
+      verifyResult.textContent = valid ? "✅ Signatur gültig" : "❌ Signatur ungültig";
+      verifyResult.style.color = valid ? "green" : "red";
+    } catch(e) {
+      alert("Fehler bei der Verifikation: " + e.message);
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
