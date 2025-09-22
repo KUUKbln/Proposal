@@ -2,446 +2,265 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Demo: Symmetrische Verschlüsselung mit WebCrypto API</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo: Symmetrische Verschlüsselung</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body {
-      margin: 1.5rem;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-      color: #222;
-      background: #fafafa;
+    .controls {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+      gap: 0.5em;
+      margin-top: 0.3em;
     }
-    header {
-      max-width: 700px;
-      width: 100%;
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    header h1 {
-      font-size: 2rem;
-      margin-bottom: 0.2em;
-      color: #004080;
-    }
-    header .meta {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 1.5rem;
-      font-style: italic;
-    }
-    main {
-      max-width: 700px;
-      width: 100%;
-      background: white;
-      padding: 2rem;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
-      box-sizing: border-box;
-    }
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-    }
-    textarea, input[type="text"], select {
-      width: 100%;
-      padding: 0.5rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-family: monospace;
-      resize: vertical;
-      min-height: 2.5em;
-    }
-    textarea {
-      min-height: 4em;
-    }
-    .output {
-      background-color: #f0f0f0;
-      border: 1px solid #ccc;
-      padding: 0.75rem;
-      border-radius: 4px;
-      min-height: 3em;
-      white-space: pre-wrap;
-      font-family: monospace;
-      position: relative;
-      user-select: text;
-    }
+
     .output.stale {
-      background-color: #fff8f8;
-      border-color: #cc0000;
-      color: #990000;
+      background-color: #fff6e0;
+      border-color: #d99;
     }
-    button.copy-btn {
-      position: absolute;
-      top: 0.3rem;
-      right: 0.3rem;
-      background: #004080;
-      border: none;
-      color: white;
-      padding: 0.2rem 0.5rem;
-      border-radius: 3px;
+
+    button.copy {
+      font-size: 0.8em;
+      padding: 0.3em 0.5em;
+      margin-left: 0.5em;
       cursor: pointer;
-      font-size: 0.85rem;
     }
-    button.copy-btn:hover {
-      background: #0066cc;
+
+    .output-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
     }
-    section.warning {
-      background-color: #fff0f0;
-      border: 1px solid #cc0000;
-      color: #990000;
-      padding: 1em 1.2em;
-      margin-top: 2rem;
-      border-radius: 4px;
-      font-weight: 700;
-    }
-    details {
-      margin-top: 2rem;
-      font-size: 0.9rem;
-      color: #333;
-    }
-    summary {
-      cursor: pointer;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    footer {
-      margin-top: 3rem;
-      width: 700px;
-      max-width: 90vw;
-      text-align: center;
-      font-size: 0.85rem;
-      color: #999;
-      padding-top: 1rem;
-      border-top: 1px solid #ddd;
-      font-family: monospace;
-      user-select: none;
+
+    .output-box .output {
+      flex: 1;
     }
   </style>
-</head>
-<body>
+
   <!--
     Generiert von ChatGPT (GPT-4o) – 2025-09-22 – Version 1.0
 
     Anweisung / Prompt:
-    Titel: "Demo: Asymmetrische Verschluesselung"
+    Titel: "Demo: Symmetrische Verschlüsselung"
     Erstelle ein interaktives Web-Tool zur Demonstration symmetrischer Kryptografie
     mit WebCrypto API, das folgende Funktionen bietet:
 
-    1. Ein Textfeld für die Eingabe einer Nachricht (Klartext).
-
-    2. Eine Ausgabefläche für den Hash (SHA-256) der Nachricht, dargestellt als
-       Hexadezimal-String. Wird automatisch berechnet fuer Nachricht in 1)
-
-    3. Ein Auswahlfeld (Select), mit dem die Funktion eingestellt wird:
-       - Nachricht verschlüsseln (AES-GCM)
-       - Nachricht entschlüsseln (AES-GCM)
-
-    4. Ein Eingabefeld für den symmetrischen Schlüssel (Base64-kodiert).
-
-    5. Eine Ausgabefläche, die je nach gewählter Funktion die verschlüsselte oder
-       entschlüsselte Nachricht (Base64-kodiert) oder den Hash (hexadezimal) anzeigt.
-
-    6. Alle Ausgaben sollen live aktualisiert werden, sobald die Eingaben (Nachricht,
-       Schlüssel oder Funktion) geändert werden.
-
-    7. Die Ausgabefelder sollen farblich gekennzeichnet sein, wenn der Inhalt nicht
-       aktuell ist (z.B. nach Änderungen im Eingabefeld).
-
-    8. Kopier-Buttons für den Hash, Schlüssel und die Ausgaben (Verschlüsselter oder
-       Entschlüsselter Text), die den jeweiligen Text in die Zwischenablage kopieren.
-
-    9. Ein sichtbarer Hinweis, dass es sich um automatisch generierten Demo-Code handelt,
-       der nicht für sicherheitskritische Anwendungen geeignet ist.
-     
-    10. Eine kurze Erklärung der verwendeten WebCrypto API-Befehle
-
-
-    Das Ziel ist ein einfach verständliches, nutzerfreundliches Web-Tool zur
-    Demonstration von Hashing, Verschlüsselung und Entschlüsselung mit WebCrypto,
-    das sowohl Entwickler:innen als auch interessierten Anwender:innen als Lernhilfe dient.
+    1. Ein Textfeld für die Eingabe einer Nachricht (Klartext oder Ciphertext).
+    2. Eine immer sichtbare Ausgabefläche für den SHA-256-Hash der Nachricht (Hex).
+    3. Ein Auswahlfeld (Select), um zwischen "Verschlüsseln" und "Entschlüsseln" zu wählen.
+    4. Ein Eingabefeld für den symmetrischen Schlüssel (Base64).
+    5. Eine dynamische Ausgabefläche (verschlüsselte oder entschlüsselte Nachricht).
+    6. Alle Ausgaben sollen automatisch bei Änderungen neu berechnet werden.
+    7. Ausgabe-Felder werden farblich hervorgehoben, wenn sie nicht aktuell sind.
+    8. Kopier-Buttons für Hash, Schlüssel und Ergebnis.
+    9. Warnhinweis: nicht für sicherheitsrelevante Anwendungen geeignet.
+    10. Ziel: Lernhilfe für Entwickler:innen.
   -->
-
+</head>
+<body>
   <header>
-    <h1>Demo: Symmetrische Verschlüsselung mit WebCrypto API</h1>
-    <p class="meta">Generiert von ChatGPT (GPT-4o) – 2025-09-22 – Version 1.0</p>
+    <h1>🔐 Demo: Symmetrische Verschlüsselung</h1>
+    <p class="meta">Generiert von GPT-4o – 2025-09-22</p>
   </header>
 
   <main>
+    <section class="warning">
+      ⚠️ <strong>Sicherheitswarnung:</strong>
+      Dieser Code wurde automatisch generiert und ist ungetestet.
+      Nicht in produktiven oder sicherheitsrelevanten Systemen verwenden.
+    </section>
+
     <label for="message">Nachricht (Klartext oder verschlüsselt):</label>
     <textarea id="message" rows="4" placeholder="Gib hier die Nachricht ein..."></textarea>
 
+    <label for="hashOutput">SHA-256 Hash (Hex):</label>
+    <div class="output-box">
+      <div class="output" id="hashOutput"></div>
+      <button class="copy" id="copyHash">Kopieren</button>
+    </div>
+
     <label for="functionSelect">Funktion:</label>
-    <select id="functionSelect" aria-label="Wähle Funktion">
-      <option value="hash">SHA-256 Hash berechnen</option>
+    <select id="functionSelect">
       <option value="encrypt">Nachricht verschlüsseln (AES-GCM)</option>
       <option value="decrypt">Nachricht entschlüsseln (AES-GCM)</option>
     </select>
 
-    <label for="key">Symmetrischer Schlüssel (Base64 kodiert):</label>
-    <input type="text" id="key" placeholder="Base64 Schlüssel eingeben..." autocomplete="off" />
+    <label for="keyInput">Schlüssel (Base64-kodiert):</label>
+    <div class="output-box">
+      <input type="text" id="keyInput" placeholder="Base64-Schlüssel eingeben oder erzeugen" />
+      <button class="copy" id="copyKey">Kopieren</button>
+    </div>
 
-    <label for="output">Ergebnis:</label>
-    <div class="output stale" id="output" aria-live="polite" aria-atomic="true" tabindex="0"></div>
+    <label for="resultOutput">Ergebnis:</label>
+    <div class="output-box">
+      <div class="output stale" id="resultOutput"></div>
+      <button class="copy" id="copyResult">Kopieren</button>
+    </div>
 
-    <button class="copy-btn" id="copyOutputBtn" aria-label="Ergebnis kopieren">Kopieren</button>
-    <button class="copy-btn" id="copyKeyBtn" aria-label="Schlüssel kopieren" style="top: 5.8rem; right: 5.5rem;">Kopieren</button>
-
-    <section class="warning" role="alert">
-      ⚠️ <strong>Warnung:</strong> Dieser automatisch generierte Demo-Code ist nicht für sicherheitskritische Anwendungen geeignet.
-    </section>
-
-    <details>
-      <summary>Erklärung der WebCrypto API-Befehle</summary>
-      <p><strong>SubtleCrypto.digest()</strong>: Berechnet einen Hash (hier SHA-256) einer Nachricht.</p>
-      <p><strong>SubtleCrypto.importKey()</strong>: Importiert einen Base64-kodierten Schlüssel für Verschlüsselung/Entschlüsselung.</p>
-      <p><strong>SubtleCrypto.encrypt()</strong>: Verschlüsselt Daten mit AES-GCM unter Verwendung eines Schlüssels und IV.</p>
-      <p><strong>SubtleCrypto.decrypt()</strong>: Entschlüsselt Daten mit AES-GCM unter Verwendung eines Schlüssels und IV.</p>
+    <details style="margin-top: 2em;">
+      <summary>ℹ️ Erklärung: Verwendete WebCrypto-API</summary>
+      <ul>
+        <li><code>crypto.subtle.digest('SHA-256')</code>: Berechnet einen Hash über die Nachricht.</li>
+        <li><code>crypto.subtle.encrypt/decrypt</code>: Verschlüsselt oder entschlüsselt mit AES-GCM.</li>
+        <li><code>importKey()</code>: Wandelt einen Base64-String in einen CryptoKey.</li>
+        <li>IV (Initialisierungsvektor) wird automatisch erzeugt und dem Ciphertext vorangestellt.</li>
+      </ul>
     </details>
   </main>
 
   <footer>
-    <p>Generated by ChatGPT (GPT-4o) – © 2025 – Version 1.0</p>
+    <p>Generated by GPT-4o – 2025 – Demo-Version</p>
   </footer>
 
   <script>
-    (() => {
-      const messageInput = document.getElementById("message");
-      const functionSelect = document.getElementById("functionSelect");
-      const keyInput = document.getElementById("key");
-      const outputDiv = document.getElementById("output");
-      const copyOutputBtn = document.getElementById("copyOutputBtn");
-      const copyKeyBtn = document.getElementById("copyKeyBtn");
+    const messageInput = document.getElementById("message");
+    const functionSelect = document.getElementById("functionSelect");
+    const keyInput = document.getElementById("keyInput");
+    const resultOutput = document.getElementById("resultOutput");
+    const hashOutput = document.getElementById("hashOutput");
 
-      let latestInputs = {
-        message: "",
-        function: "hash",
-        key: ""
-      };
-      let latestOutput = "";
+    const copyHashBtn = document.getElementById("copyHash");
+    const copyKeyBtn = document.getElementById("copyKey");
+    const copyResultBtn = document.getElementById("copyResult");
 
-      function setStale(state) {
-        if(state) outputDiv.classList.add("stale");
-        else outputDiv.classList.remove("stale");
-      }
+    function arrayBufferToHex(buffer) {
+      return [...new Uint8Array(buffer)]
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
 
-      function base64ToArrayBuffer(base64) {
-        try {
-          const binaryString = atob(base64);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          return bytes.buffer;
-        } catch {
-          return null;
+    function base64ToArrayBuffer(base64) {
+      try {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
         }
+        return bytes.buffer;
+      } catch {
+        return null;
       }
+    }
 
-      function arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let b of bytes) {
+        binary += String.fromCharCode(b);
       }
+      return btoa(binary);
+    }
 
-      function arrayBufferToHex(buffer) {
-        const bytes = new Uint8Array(buffer);
-        return Array.from(bytes)
-          .map(b => b.toString(16).padStart(2, "0"))
-          .join("");
-      }
+    function setStale(stale = true) {
+      resultOutput.classList.toggle("stale", stale);
+    }
 
-      async function computeHash(message) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(message);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        return arrayBufferToHex(hashBuffer);
-      }
+    async function computeHash(message) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return arrayBufferToHex(hashBuffer);
+    }
 
-      async function importKey(base64Key) {
-        const keyBuffer = base64ToArrayBuffer(base64Key);
-        if (!keyBuffer) return null;
-        try {
-          return await crypto.subtle.importKey(
-            "raw",
-            keyBuffer,
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"]
-          );
-        } catch {
-          return null;
-        }
-      }
-
-      async function encrypt(message, key) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(message);
-
-        // IV: 12 zufällige Bytes
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-
-        const encryptedBuffer = await crypto.subtle.encrypt(
-          {
-            name: "AES-GCM",
-            iv: iv
-          },
-          key,
-          data
+    async function importKey(base64Key) {
+      const keyBuffer = base64ToArrayBuffer(base64Key);
+      if (!keyBuffer) return null;
+      try {
+        return await crypto.subtle.importKey(
+          "raw",
+          keyBuffer,
+          { name: "AES-GCM" },
+          false,
+          ["encrypt", "decrypt"]
         );
-
-        // IV vorangestellt + verschlüsselte Daten zusammen in Base64
-        const combined = new Uint8Array(iv.byteLength + encryptedBuffer.byteLength);
-        combined.set(iv, 0);
-        combined.set(new Uint8Array(encryptedBuffer), iv.byteLength);
-
-        return arrayBufferToBase64(combined.buffer);
+      } catch {
+        return null;
       }
+    }
 
-      async function decrypt(base64Ciphertext, key) {
-        const combinedBuffer = base64ToArrayBuffer(base64Ciphertext);
-        if (!combinedBuffer || combinedBuffer.byteLength < 13) return null;
+    async function encrypt(message, key) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+      const combined = new Uint8Array(iv.length + encrypted.byteLength);
+      combined.set(iv);
+      combined.set(new Uint8Array(encrypted), iv.length);
+      return arrayBufferToBase64(combined.buffer);
+    }
 
-        const combined = new Uint8Array(combinedBuffer);
-        const iv = combined.slice(0, 12);
-        const data = combined.slice(12);
+    async function decrypt(base64Cipher, key) {
+      const combined = base64ToArrayBuffer(base64Cipher);
+      if (!combined || combined.byteLength < 13) return null;
+      const iv = new Uint8Array(combined.slice(0, 12));
+      const data = combined.slice(12);
+      try {
+        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+        return new TextDecoder().decode(decrypted);
+      } catch {
+        return null;
+      }
+    }
 
+    async function updateAll() {
+      const msg = messageInput.value.trim();
+      const func = functionSelect.value;
+      const keyBase64 = keyInput.value.trim();
+
+      // Hash immer berechnen
+      if (msg) {
         try {
-          const decryptedBuffer = await crypto.subtle.decrypt(
-            {
-              name: "AES-GCM",
-              iv: iv
-            },
-            key,
-            data
-          );
-
-          const decoder = new TextDecoder();
-          return decoder.decode(decryptedBuffer);
+          const hash = await computeHash(msg);
+          hashOutput.textContent = hash;
         } catch {
-          return null;
+          hashOutput.textContent = "Fehler beim Hashen";
         }
+      } else {
+        hashOutput.textContent = "";
       }
 
-      async function updateOutput() {
-        const message = messageInput.value;
-        const func = functionSelect.value;
-        const base64Key = keyInput.value.trim();
-
-        latestInputs.message = message;
-        latestInputs.function = func;
-        latestInputs.key = base64Key;
-
+      // Verschlüsselung/Entschlüsselung
+      if (!msg || !keyBase64) {
         setStale(true);
-
-        if (func === "hash") {
-          if (message.length === 0) {
-            outputDiv.textContent = "";
-            setStale(false);
-            return;
-          }
-          try {
-            const hash = await computeHash(message);
-            outputDiv.textContent = hash;
-            latestOutput = hash;
-            setStale(false);
-          } catch {
-            outputDiv.textContent = "Fehler beim Hashen";
-          }
-          return;
-        }
-
-        // Für Verschlüsselung und Entschlüsselung wird ein Schlüssel benötigt
-        if (!base64Key) {
-          outputDiv.textContent = "Bitte Base64-kodierten Schlüssel eingeben";
-          return;
-        }
-
-        const key = await importKey(base64Key);
-        if (!key) {
-          outputDiv.textContent = "Ungültiger Schlüssel";
-          return;
-        }
-
-        if (func === "encrypt") {
-          if (message.length === 0) {
-            outputDiv.textContent = "";
-            setStale(false);
-            return;
-          }
-          try {
-            const cipherBase64 = await encrypt(message, key);
-            outputDiv.textContent = cipherBase64;
-            latestOutput = cipherBase64;
-            setStale(false);
-          } catch {
-            outputDiv.textContent = "Fehler beim Verschlüsseln";
-          }
-          return;
-        }
-
-        if (func === "decrypt") {
-          if (message.length === 0) {
-            outputDiv.textContent = "";
-            setStale(false);
-            return;
-          }
-          try {
-            const plainText = await decrypt(message, key);
-            if (plainText === null) {
-              outputDiv.textContent = "Fehler beim Entschlüsseln oder ungültiger Input";
-            } else {
-              outputDiv.textContent = plainText;
-              latestOutput = plainText;
-              setStale(false);
-            }
-          } catch {
-            outputDiv.textContent = "Fehler beim Entschlüsseln";
-          }
-          return;
-        }
+        return;
       }
 
-      // Event-Listener für Live-Update und Stale-Markierung
-      [messageInput, functionSelect, keyInput].forEach(el => {
-        el.addEventListener("input", () => {
-          setStale(true);
-          updateOutput();
-        });
-      });
+      const key = await importKey(keyBase64);
+      if (!key) {
+        resultOutput.textContent = "Ungültiger Schlüssel";
+        setStale(true);
+        return;
+      }
 
-      // Kopierfunktion für Ausgaben
-      copyOutputBtn.addEventListener("click", () => {
-        if (!latestOutput) return;
-        navigator.clipboard.writeText(latestOutput).then(() => {
-          copyOutputBtn.textContent = "Kopiert!";
-          setTimeout(() => (copyOutputBtn.textContent = "Kopieren"), 1200);
-        });
-      });
+      let result = "";
+      if (func === "encrypt") {
+        result = await encrypt(msg, key);
+      } else if (func === "decrypt") {
+        const plain = await decrypt(msg, key);
+        result = plain ?? "Fehler bei Entschlüsselung";
+      }
 
-      // Kopierfunktion für Schlüssel
-      copyKeyBtn.addEventListener("click", () => {
-        if (!keyInput.value) return;
-        navigator.clipboard.writeText(keyInput.value).then(() => {
-          copyKeyBtn.textContent = "Kopiert!";
-          setTimeout(() => (copyKeyBtn.textContent = "Kopieren"), 1200);
-        });
-      });
+      resultOutput.textContent = result;
+      setStale(false);
+    }
 
-      // Initialer Aufruf
-      updateOutput();
-    })();
+    messageInput.addEventListener("input", () => {
+      setStale(true);
+      updateAll();
+    });
+    keyInput.addEventListener("input", () => {
+      setStale(true);
+      updateAll();
+    });
+    functionSelect.addEventListener("change", () => {
+      setStale(true);
+      updateAll();
+    });
+
+    copyHashBtn.onclick = () => navigator.clipboard.writeText(hashOutput.textContent);
+    copyKeyBtn.onclick = () => navigator.clipboard.writeText(keyInput.value.trim());
+    copyResultBtn.onclick = () => navigator.clipboard.writeText(resultOutput.textContent);
+
+    // Initial
+    updateAll();
   </script>
 </body>
 </html>
