@@ -81,6 +81,13 @@ Es ist **modelloffen** – jeder Beitrag, der den anderen Richtlinien entspricht
 
 ---
 
+## Styling
+
+Basis-Stile sind als Embedded CSS im Kopf. `style.css` ist die Vorlage und wird zusätzlich eingebunden.  
+So sind Dateien autark und zentral anpassbar.
+
+---
+
 ## 🧠 Ziel und Hintergrund
 
 Diese Datei ergänzt die klassische `README.md` um die Perspektive generativer Inhalte.  
