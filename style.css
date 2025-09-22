@@ -65,7 +65,12 @@ main {
   border-radius: 6px;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
 }
-
+label, textarea, input, select {
+  display: block;
+  width: 100%;
+  margin-bottom: 1em;
+  box-sizing: border-box;
+}
 /* Warnbox */
 .warning {
   background-color: #fff0f0;
