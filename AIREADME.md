@@ -81,9 +81,25 @@ Es ist **modelloffen** – jeder Beitrag, der den anderen Richtlinien entspricht
 
 ---
 
+### 5. Dokumentation der Anweisung im Quellcode
+
+KI-generierte Dateien müssen die zugrundeliegende Anweisung oder den Prompt als mehrzeiligen Kommentar im Dokument enthalten.  
+Das sichert Nachvollziehbarkeit, erleichtert Review und Verständnis.
+
+**Beispiel (HTML):**
+
+```html
+<!--
+  Generiert von KI-Modell XYZ – Datum – Version
+  Anweisung / Prompt:
+  "Beschreibung der Anweisung oder des Prompts ..."
+-->
+```
+---
+
 ## Styling
 
-Basis-Stile sind als Embedded CSS im Kopf. `style.css` ist die Vorlage und wird zusätzlich eingebunden.  
+Basis-Stile sind als Embedded CSS im Kopf. `/style.css` ist die Vorlage und wird zusätzlich eingebunden.  
 So sind Dateien autark und zentral anpassbar.
 
 ---
