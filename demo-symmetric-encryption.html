@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WebCrypto Demo – Symmetrische Verschlüsselung &amp; Hash</title>
+<style>
+  body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; margin: 1.5rem; background:#fafafa; color:#222; max-width: 700px; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  textarea, input[type=text] { width: 100%; padding: 0.5em; font-size: 1rem; margin-top: 0.3em; box-sizing: border-box; font-family: monospace; }
+  select { padding: 0.3em 0.5em; margin-top: 0.3em; font-family: inherit; font-size: 1rem; }
+  pre { background: #eee; padding: 1em; border-radius: 4px; margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; font-family: monospace; position: relative; }
+  .warning { background-color: #fff0f0; border: 1px solid #cc0000; color: #990000; padding: 1em 1.2em; margin-top: 1.5rem; border-radius: 4px; }
+  button.copy-btn {
+    position: absolute;
+    top: 0.3em;
+    right: 0.3em;
+    font-size: 0.8rem;
+    padding: 0.15em 0.5em;
+    border: none;
+    background: #004080;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+  }
+  button.copy-btn:hover {
+    background: #0060c0;
+  }
+  /* Farbhintergrund für nicht aktualisierte Felder */
+  .not-updated {
+    background-color: #fff8dc !important;
+  }
+</style>
+</head>
+<body>
+
+<h1>WebCrypto Demo: Symmetrische Verschlüsselung &amp; Hash</h1>
+
+<label for="message">Nachricht</label>
+<textarea id="message" rows="4" placeholder="Hier Nachricht eingeben...">Hallo WebCrypto!</textarea>
+
+<label for="operation">Operation</label>
+<select id="operation">
+  <option value="digest">Hash (SHA-256)</option>
+  <option value="encrypt">Verschlüsseln (AES-GCM)</option>
+  <option value="decrypt">Entschlüsseln (AES-GCM)</option>
+</select>
+
+<label for="keyInput">Schlüssel (für AES, Base64 kodiert)</label>
+<input type="text" id="keyInput" placeholder="z.B. zufälliger Base64-Schlüssel" value="w7q7JysMZqGv/nNlPd1dYw==">
+
+<label for="result">Ergebnis</label>
+<pre id="result" class="not-updated">
+(Ergebnis erscheint hier)
+<button class="copy-btn" title="Ergebnis kopieren">Kopieren</button>
+</pre>
+
+<label for="explanation">Erklärung</label>
+<pre id="explanation" class="not-updated">
+Wähle eine Operation und gib Nachricht sowie Schlüssel ein.
+<button class="copy-btn" title="Erklärung kopieren">Kopieren</button>
+</pre>
+
+<label for="warning" style="margin-top:1.5rem;">Hinweise</label>
+<div class="warning" id="warning" style="display:none;">
+  ⚠️ Achtung: AES-Schlüssel muss Base64 sein und 128/192/256 Bit lang sein (16/24/32 Bytes).
+</div>
+
+<script>
+(async () => {
+  const msgInput = document.getElementById('message');
+  const opSelect = document.getElementById('operation');
+  const keyInput = document.getElementById('keyInput');
+  const resultPre = document.getElementById('result');
+  const explanationPre = document.getElementById('explanation');
+  const warningDiv = document.getElementById('warning');
+
+  // Buttons
+  const copyButtons = document.querySelectorAll('button.copy-btn');
+
+  // Base64 <-> ArrayBuffer
+  function base64ToArrayBuffer(base64) {
+    try {
+      const binary_string = atob(base64);
+      const len = binary_string.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+      }
+      return bytes.buffer;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  // UTF-8 String → ArrayBuffer
+  function str2ab(str) {
+    return new TextEncoder().encode(str);
+  }
+  // ArrayBuffer → UTF-8 String
+  function ab2str(buf) {
+    return new TextDecoder().decode(buf);
+  }
+
+  // Debounce Implementation
+  let timeoutId;
+  function debounceUpdate() {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(updateResult, 300);
+  }
+
+  async function importKey(base64Key) {
+    const keyBuffer = base64ToArrayBuffer(base64Key);
+    if (!keyBuffer) return null;
+    try {
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyBuffer,
+        'AES-GCM',
+        false,
+        ['encrypt', 'decrypt']
+      );
+      return cryptoKey;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function updateResult() {
+    const msg = msgInput.value;
+    const op = opSelect.value;
+    const keyB64 = keyInput.value.trim();
+
+    // Ergebnis und Erklärung zunächst "nicht aktualisiert"
+    resultPre.classList.add('not-updated');
+    explanationPre.classList.add('not-updated');
+
+    warningDiv.style.display = 'none';
+    resultPre.textContent = '(Verarbeite...)';
+    explanationPre.textContent = '';
+
+    if (!msg) {
+      resultPre.textContent = '(Bitte Nachricht eingeben)';
+      return;
+    }
+
+    if (op === 'digest') {
+      try {
+        const hashBuffer = await crypto.subtle.digest('SHA-256', str2ab(msg));
+        const hashB64 = arrayBufferToBase64(hashBuffer);
+        resultPre.textContent = hashB64;
+        explanationPre.textContent = 'SHA-256 erzeugt einen 256-Bit-Hash der Nachricht. Kein Schlüssel benötigt.';
+        resultPre.classList.remove('not-updated');
+        explanationPre.classList.remove('not-updated');
+      } catch (e) {
+        resultPre.textContent = 'Fehler beim Hashen: ' + e.message;
+      }
+      return;
+    }
+
+    if (!keyB64) {
+      resultPre.textContent = '(Bitte Schlüssel eingeben)';
+      return;
+    }
+
+    const cryptoKey = await importKey(keyB64);
+    if (!cryptoKey) {
+      warningDiv.style.display = 'block';
+      resultPre.textContent = '(Ungültiger Schlüssel)';
+      explanationPre.textContent = 'Der Schlüssel muss Base64-kodiert sein und 16, 24 oder 32 Bytes lang (128/192/256 Bit).';
+      return;
+    }
+
+    if (op === 'encrypt') {
+      try {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encryptedBuffer = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv: iv },
+          cryptoKey,
+          str2ab(msg)
+        );
+        const encryptedB64 = arrayBufferToBase64(encryptedBuffer);
+        const ivB64 = arrayBufferToBase64(iv.buffer);
+        resultPre.textContent = ivB64 + ':' + encryptedB64;
+        explanationPre.textContent = 'AES-GCM verschlüsselt die Nachricht mit einem zufälligen Initialisierungsvektor (IV).';
+        resultPre.classList.remove('not-updated');
+        explanationPre.classList.remove('not-updated');
+      } catch (e) {
+        resultPre.textContent = 'Fehler beim Verschlüsseln: ' + e.message;
+      }
+      return;
+    }
+
+    if (op === 'decrypt') {
+      try {
+        const parts = msg.split(':');
+        if (parts.length !== 2) throw new Error('Erwarte IV:Ciphertext');
+        const iv = base64ToArrayBuffer(parts[0]);
+        const ciphertext = base64ToArrayBuffer(parts[1]);
+        if (!iv || !ciphertext) throw new Error('Ungültige Base64-Daten');
+        const decryptedBuffer = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: new Uint8Array(iv) },
+          cryptoKey,
+          ciphertext
+        );
+        const decryptedText = ab2str(decryptedBuffer);
+        resultPre.textContent = decryptedText;
+        explanationPre.textContent = 'AES-GCM entschlüsselt die Nachricht mit dem angegebenen Initialisierungsvektor (IV).';
+        resultPre.classList.remove('not-updated');
+        explanationPre.classList.remove('not-updated');
+      } catch (e) {
+        resultPre.textContent = 'Fehler beim Entschlüsseln: ' + e.message;
+      }
+      return;
+    }
+
+    resultPre.textContent = '(Operation nicht unterstützt)';
+  }
+
+  // Event-Listener mit Debounce
+  msgInput.addEventListener('input', debounceUpdate);
+  opSelect.addEventListener('change', updateResult);
+  keyInput.addEventListener('input', debounceUpdate);
+
+  // Copy-Button-Logik
+  copyButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pre = btn.parentElement;
+      if (!pre) return;
+      const text = pre.textContent.replace(/Kopieren/g, '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅';
+        setTimeout(() => (btn.textContent = 'Kopieren'), 1500);
+      });
+    });
+  });
+
+  // Initialer Aufruf
+  updateResult();
+
+})();
+</script>
+
+</body>
+</html>
