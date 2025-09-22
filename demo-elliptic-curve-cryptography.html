@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Demo: Asymmetrische Signatur & Verschlüsselung mit ECC (elliptic.js)</title>
+<style>
+  body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 700px;
+    margin: 2rem auto;
+    background: #fafafa;
+    color: #222;
+  }
+  header, footer {
+    text-align: center;
+    color: #666;
+  }
+  h1 {
+    color: #004080;
+  }
+  textarea, input[type=text], select {
+    width: 100%;
+    font-family: monospace;
+    font-size: 1rem;
+    margin: 0.3rem 0 1rem 0;
+    padding: 0.5rem;
+    box-sizing: border-box;
+  }
+  button.copy-btn {
+    margin-left: 0.5rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .section {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+    margin-bottom: 2rem;
+  }
+  label {
+    font-weight: 600;
+  }
+  .output {
+    background: #eef5ff;
+    border: 1px solid #aac;
+    padding: 0.5rem;
+    white-space: pre-wrap;
+    min-height: 3rem;
+    font-family: monospace;
+    overflow-wrap: break-word;
+  }
+  .warning {
+    background-color: #fff0f0;
+    border: 1px solid #cc0000;
+    color: #990000;
+    padding: 1em 1.2em;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Demo: Asymmetrische Signatur & Verschlüsselung mit ECC (elliptic.js)</h1>
+  <p class="meta">Generiert von ChatGPT (GPT-4o) – 2025-09-23 – Version 1.0</p>
+</header>
+
+<section class="section">
+  <label for="msg">Nachricht (Klartext):</label>
+  <textarea id="msg" rows="4" placeholder="Gib hier deine Nachricht ein...">Hallo Welt</textarea>
+
+  <label for="keypair">Schlüsselpaare generieren:</label><br/>
+  <button id="genKeys">Neu generieren</button>
+
+  <label for="pubKey">Öffentlicher Schlüssel (Base64):</label>
+  <textarea id="pubKey" rows="2" readonly></textarea>
+  <button class="copy-btn" data-target="pubKey">Kopieren</button>
+
+  <label for="privKey">Privater Schlüssel (Base64):</label>
+  <textarea id="privKey" rows="2" readonly></textarea>
+  <button class="copy-btn" data-target="privKey">Kopieren</button>
+</section>
+
+<section class="section">
+  <label for="signature">Signatur (Base64):</label>
+  <textarea id="signature" rows="3" readonly></textarea>
+  <button class="copy-btn" data-target="signature">Kopieren</button><br/>
+  <button id="signBtn">Signieren</button>
+  <button id="verifyBtn">Verifizieren</button>
+  <p id="verifyResult"></p>
+</section>
+
+<section class="section">
+  <label for="peerPubKey">Fremder öffentlicher Schlüssel (Base64) für Verschlüsselung:</label>
+  <textarea id="peerPubKey" rows="2" placeholder="Z.B. öffentlicher Schlüssel des Empfängers"></textarea>
+
+  <button id="deriveSecretBtn">Shared Secret ableiten</button>
+
+  <label for="sharedSecret">Gemeinsames Geheimnis (Base64):</label>
+  <textarea id="sharedSecret" rows="2" readonly></textarea>
+  <button class="copy-btn" data-target="sharedSecret">Kopieren</button>
+
+  <label for="encryptedMsg">Nachricht verschlüsseln / entschlüsseln (XOR-Simulation):</label>
+  <textarea id="encryptedMsg" rows="4" placeholder="Hier steht verschlüsselte Nachricht (Base64)"></textarea>
+  <button id="encryptBtn">Verschlüsseln</button>
+  <button id="decryptBtn">Entschlüsseln</button>
+  <p><small>Hinweis: Verschlüsselung ist hier einfach XOR mit geteiltem Secret. Nicht sicher, nur Demo.</small></p>
+</section>
+
+<section class="warning">
+  ⚠️ <strong>Warnung:</strong> Diese Demo verwendet elliptische Kurven (P-256) mit JavaScript-Bibliothek elliptic.js für Schlüssel, Signatur und Key Agreement.  
+  Die Verschlüsselung ist stark vereinfacht und nicht sicher für echte Anwendungen.  
+  Verwende diese Demo nur zu Lernzwecken.
+</section>
+
+<footer>
+  <p>Generiert von ChatGPT (GPT-4o) – © 2025 – Version 1.0</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/elliptic@6.5.4/dist/elliptic.min.js"></script>
+<script>
+  const EC = elliptic.ec;
+  const ec = new EC('p256');
+
+  // HTML Elemente
+  const msgEl = document.getElementById('msg');
+  const genKeysBtn = document.getElementById('genKeys');
+  const pubKeyEl = document.getElementById('pubKey');
+  const privKeyEl = document.getElementById('privKey');
+  const signBtn = document.getElementById('signBtn');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const signatureEl = document.getElementById('signature');
+  const verifyResultEl = document.getElementById('verifyResult');
+  const peerPubKeyEl = document.getElementById('peerPubKey');
+  const deriveSecretBtn = document.getElementById('deriveSecretBtn');
+  const sharedSecretEl = document.getElementById('sharedSecret');
+  const encryptedMsgEl = document.getElementById('encryptedMsg');
+  const encryptBtn = document.getElementById('encryptBtn');
+  const decryptBtn = document.getElementById('decryptBtn');
+
+  // Schlüsselpaare (EC Keys)
+  let keyPair = null;
+  let sharedSecretBytes = null;
+
+  // Hilfsfunktionen Base64 <-> Uint8Array
+  function b64ToUint8Array(b64) {
+    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  }
+  function uint8ArrayToB64(bytes) {
+    return btoa(String.fromCharCode(...bytes));
+  }
+
+  // Schlüssel in Base64 codieren (privat und öffentlich)
+  function exportKeyPair(kp) {
+    // privKey: priv key as hex
+    const privHex = kp.getPrivate('hex');
+    const privB64 = btoa(hexToBytes(privHex).map(c => String.fromCharCode(c)).join(''));
+    // pubKey: compressed format (33 bytes) Base64
+    const pubBytes = kp.getPublic(true, 'array');
+    const pubB64 = uint8ArrayToB64(Uint8Array.from(pubBytes));
+    return { privB64, pubB64 };
+  }
+
+  // hex string to Uint8Array
+  function hexToBytes(hex) {
+    const bytes = [];
+    for (let c = 0; c < hex.length; c += 2) {
+      bytes.push(parseInt(hex.substr(c, 2), 16));
+    }
+    return Uint8Array.from(bytes);
+  }
+
+  // Base64 to hex string
+  function b64ToHex(b64) {
+    return Array.from(atob(b64)).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  }
+
+  // XOR Verschlüsselung (Demo, nicht sicher)
+  function xorEncryptDecrypt(dataBytes, keyBytes) {
+    const output = new Uint8Array(dataBytes.length);
+    for (let i = 0; i < dataBytes.length; i++) {
+      output[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    return output;
+  }
+
+  // Schlüssel generieren
+  function generateKeyPair() {
+    keyPair = ec.genKeyPair();
+    const { privB64, pubB64 } = exportKeyPair(keyPair);
+    privKeyEl.value = privB64;
+    pubKeyEl.value = pubB64;
+    signatureEl.value = '';
+    verifyResultEl.textContent = '';
+    sharedSecretEl.value = '';
+    encryptedMsgEl.value = '';
+    peerPubKeyEl.value = '';
+    sharedSecretBytes = null;
+  }
+
+  // Nachricht signieren
+  function signMessage() {
+    if (!keyPair) {
+      alert('Bitte zuerst Schlüssel generieren!');
+      return;
+    }
+    const msg = msgEl.value;
+    const msgHash = ec.hash().update(msg).digest(); // sha256 Hash von elliptic intern
+    const sig = keyPair.sign(msgHash);
+    // Signatur als DER Hex, dann Base64
+    const derHex = sig.toDER('hex');
+    const derB64 = btoa(hexToBytes(derHex).map(c => String.fromCharCode(c)).join(''));
+    signatureEl.value = derB64;
+    verifyResultEl.textContent = '';
+  }
+
+  // Signatur prüfen
+  function verifySignature() {
+    if (!keyPair) {
+      alert('Bitte zuerst Schlüssel generieren!');
+      return;
+    }
+    const pubKey = ec.keyFromPublic(pubKeyEl.value, 'base64');
+    const msg = msgEl.value;
+    const sigB64 = signatureEl.value;
+    if (!sigB64) {
+      alert('Keine Signatur vorhanden!');
+      return;
+    }
+    // Signatur vom Base64 zu DER Hex
+    const sigBytes = b64ToUint8Array(sigB64);
+    const derHex = Array.from(sigBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const sig = ec.signatureFromDER(Buffer.from(derHex, 'hex'));
+
+    const msgHash = ec.hash().update(msg).digest();
+    const valid = pubKey.verify(msgHash, sig);
+    verifyResultEl.textContent = valid ? '✔️ Signatur gültig' : '❌ Signatur ungültig';
+  }
+
+  // Shared Secret ableiten (ECDH)
+  function deriveSharedSecret() {
+    if (!keyPair) {
+      alert('Bitte zuerst Schlüssel generieren!');
+      return;
+    }
+    const peerPubB64 = peerPubKeyEl.value.trim();
+    if (!peerPubB64) {
+      alert('Bitte fremden öffentlichen Schlüssel eingeben!');
+      return;
+    }
+    try {
+      const peerPub = ec.keyFromPublic(peerPubB64, 'base64');
+      const secret = keyPair.derive(peerPub.getPublic()); // BN.js BigNumber
+      // secret to bytes hex then to Base64
+      const secretHex = secret.toString(16).padStart(64, '0');
+      sharedSecretBytes = hexToBytes(secretHex);
+      sharedSecretEl.value = uint8ArrayToB64(sharedSecretBytes);
+    } catch (e) {
+      alert('Ungültiger öffentlicher Schlüssel!');
+    }
+  }
+
+  // Verschlüsseln (XOR mit shared secret)
+  function encryptMessage() {
+    if (!sharedSecretBytes) {
+      alert('Bitte zuerst Shared Secret ableiten!');
+      return;
+    }
+    const plaintext = msgEl.value;
+    const plainBytes = new TextEncoder().encode(plaintext);
+    const encryptedBytes = xorEncryptDecrypt(plainBytes, sharedSecretBytes);
+    encryptedMsgEl.value = uint8ArrayToB64(encryptedBytes);
+  }
+
+  // Entschlüsseln (XOR mit shared secret)
+  function decryptMessage() {
+    if (!sharedSecretBytes) {
+      alert('Bitte zuerst Shared Secret ableiten!');
+      return;
+    }
+    try {
+      const encryptedB64 = encryptedMsgEl.value.trim();
+      if (!encryptedB64) {
+        alert('Keine verschlüsselte Nachricht eingegeben!');
+        return;
+      }
+      const encryptedBytes = b64ToUint8Array(encryptedB64);
+      const decryptedBytes = xorEncryptDecrypt(encryptedBytes, sharedSecretBytes);
+      const decryptedText = new TextDecoder().decode(decryptedBytes);
+      msgEl.value = decryptedText;
+    } catch {
+      alert('Fehler beim Entschlüsseln!');
+    }
+  }
+
+  // Button Events
+  genKeysBtn.addEventListener('click', generateKeyPair);
+  signBtn.addEventListener('click', signMessage);
+  verifyBtn.addEventListener('click', verifySignature);
+  deriveSecretBtn.addEventListener('click', deriveSharedSecret);
+  encryptBtn.addEventListener('click', encryptMessage);
+  decryptBtn.addEventListener('click', decryptMessage);
+
+  // Kopier-Buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const targetId = e.target.dataset.target;
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.select();
+        document.execCommand('copy');
+        alert(`Inhalt von "${targetId}" kopiert!`);
+      }
+    });
+  });
+
+  // Initial key generation on load
+  generateKeyPair();
+</script>
+
+</body>
+</html>
